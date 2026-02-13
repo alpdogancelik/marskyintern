@@ -423,8 +423,15 @@ class _HomeContent extends StatelessWidget {
                   );
                 }
 
-                onLoadMore(
-                    data: data, index: index, listLength: visibleCoins.length);
+                if (index >= visibleCoins.length - 1) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    onLoadMore(
+                      data: data,
+                      index: index,
+                      listLength: visibleCoins.length,
+                    );
+                  });
+                }
 
                 final coin = visibleCoins[index];
                 return CoinMarketRow(

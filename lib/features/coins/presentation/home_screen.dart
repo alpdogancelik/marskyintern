@@ -173,9 +173,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       if (!isFiltering &&
                           index >=
                               visibleItems.length - _prefetchRemainingItems) {
-                        ref
-                            .read(homeControllerProvider.notifier)
-                            .loadNextPageIfNeeded();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          ref
+                              .read(homeControllerProvider.notifier)
+                              .loadNextPageIfNeeded();
+                        });
                       }
 
                       final coin = visibleItems[index];
