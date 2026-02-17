@@ -26,6 +26,7 @@ class SupabaseCoinsRepository implements CoinsRepository {
 
   final SupabaseClient _client;
   final CoinsRemoteDataSource? fallbackRemoteDataSource;
+  static const int _fallbackLimit = 100;
 
   Stream<List<Coin>> watchCoins() {
     return _client
@@ -40,11 +41,11 @@ class SupabaseCoinsRepository implements CoinsRepository {
         .from('coins')
         .select()
         .order('rank', ascending: true)
-        .limit(200);
+        .limit(_fallbackLimit);
     final rows = _asRowList(response);
     if (rows.isEmpty && fallbackRemoteDataSource != null) {
       final fallback = await fallbackRemoteDataSource!.listCoins(
-        limit: 200,
+        limit: _fallbackLimit,
         offset: 0,
         orderBy: CoinOrderBy.marketCap,
         orderDirection: CoinOrderDirection.desc,

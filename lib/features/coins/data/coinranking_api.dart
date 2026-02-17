@@ -76,6 +76,8 @@ class CoinRankingApiClient {
   CoinRankingApiClient(this._dio);
 
   final Dio _dio;
+  static const int _maxListLimit = 100;
+  static const int _defaultListLimit = 20;
 
   Future<List<CoinDto>> listCoins({
     required int limit,
@@ -83,13 +85,15 @@ class CoinRankingApiClient {
     required CoinOrderBy orderBy,
     required CoinOrderDirection orderDirection,
   }) async {
+    final safeLimit = _normalizeLimit(limit);
+    final safeOffset = offset < 0 ? 0 : offset;
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/coins',
         queryParameters: <String, dynamic>{
           // CoinRanking paging is offset+limit and sorting is server-side.
-          'limit': limit,
-          'offset': offset,
+          'limit': safeLimit,
+          'offset': safeOffset,
           'orderBy': orderBy.apiValue,
           'orderDirection': orderDirection.apiValue,
         },
@@ -192,5 +196,15 @@ class CoinRankingApiClient {
       );
     }
     return ExceptionMapper.map(error);
+  }
+
+  int _normalizeLimit(int rawLimit) {
+    if (rawLimit <= 0) {
+      return _defaultListLimit;
+    }
+    if (rawLimit > _maxListLimit) {
+      return _maxListLimit;
+    }
+    return rawLimit;
   }
 }
