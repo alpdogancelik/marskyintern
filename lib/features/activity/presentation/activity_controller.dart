@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/mock_activity_repository.dart';
+import '../data/repositories.dart';
 import '../domain/activity_repository.dart';
 import '../domain/entities/activity_transaction.dart';
 import '../domain/entities/transaction_group.dart';

@@ -1,15 +1,9 @@
 import 'dart:math' as math;
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../domain/entities/stock.dart';
 import '../domain/entities/stock_holding.dart';
 import '../domain/entities/stock_transaction.dart';
 import '../domain/stocks_repository.dart';
-
-final stocksRepositoryProvider = Provider<StocksRepository>(
-  (ref) => MockStocksRepository(),
-);
 
 class MockStocksRepository implements StocksRepository {
   static final List<Stock> _stocks = _mockStocks();

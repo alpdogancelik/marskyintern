@@ -1,14 +1,16 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/app_shell/presentation/app_shell_screen.dart';
 import '../features/activity/presentation/activity_screens.dart';
+import '../features/auth/data/auth_repository.dart';
+import '../features/auth/domain/auth_state.dart' as domain;
 import '../features/auth/presentation/auth_screens.dart';
 import '../features/communications/presentation/communications_screens.dart';
+import '../features/coins/presentation/market_list_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
 import '../features/order/presentation/order_screens.dart';
 import '../features/portfolio/presentation/portfolio_screens.dart';
@@ -20,60 +22,24 @@ import '../ui/onboarding/get_started_screens.dart';
 import '../ui/onboarding/onboarding_pager_screen.dart';
 import '../ui/onboarding/splash_screen.dart';
 
-const bool kBypassAuthForPreview = true;
+const String _kHomeRoute = '/app/home';
+const String _kLoginRoute = '/auth/login';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final refresh = GoRouterRefreshStream(
-    Supabase.instance.client.auth.onAuthStateChange,
-  );
+  final authRepository = ref.watch(authRepositoryProvider);
+  final refresh = GoRouterRefreshStream(authRepository.authStateChanges());
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
-    initialLocation: kBypassAuthForPreview ? '/app/home' : '/splash',
+    initialLocation: '/splash',
     refreshListenable: refresh,
     redirect: (context, state) {
-      final location = state.matchedLocation;
-      final isAppRoute = location.startsWith('/app');
-      final isStocksRoute = location.startsWith('/stocks');
-      final isOrderRoute = location.startsWith('/order');
-      final isPortfolioRoute = location.startsWith('/portfolio');
-      final isActivityRoute = location.startsWith('/activity');
-      final isWalletRoute = location.startsWith('/wallet');
-      final isAccountRoute = location.startsWith('/account');
-      final isMessagesRoute = location.startsWith('/messages');
-      final isNotificationsRoute = location.startsWith('/notifications');
-      final isAuthRoute = location.startsWith('/auth');
-      final isOnboardingRoute = location == '/splash' ||
-          location == '/onboarding' ||
-          location == '/get-started-v1' ||
-          location == '/get-started-v2';
-      final isPublicRoute = isAuthRoute || isOnboardingRoute;
-
-      if (kBypassAuthForPreview) {
-        if (isPublicRoute) {
-          return '/app/home';
-        }
-        return null;
-      }
-
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session == null &&
-          (isAppRoute ||
-              isStocksRoute ||
-              isOrderRoute ||
-              isPortfolioRoute ||
-              isActivityRoute ||
-              isWalletRoute ||
-              isAccountRoute ||
-              isMessagesRoute ||
-              isNotificationsRoute)) {
-        return '/auth/login';
-      }
-      if (session != null && isPublicRoute) {
-        return '/app/home';
-      }
-      return null;
+      return resolveAppAuthRedirect(
+        location: state.matchedLocation,
+        authState: authRepository.currentAuthState,
+      );
     },
+    errorBuilder: (context, state) => _RouterNotFoundScreen(state: state),
     routes: [
       GoRoute(
         path: '/splash',
@@ -128,6 +94,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         redirect: (_, __) => '/auth/signup',
+      ),
+      GoRoute(
+        path: '/market',
+        builder: (context, state) => const MarketListScreen(),
       ),
       GoRoute(
         path: '/order/crypto',
@@ -302,6 +272,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const PushNotificationsScreen(),
           ),
           GoRoute(
+            path: 'verify-identity',
+            builder: (context, state) => const IdentityVerificationScreen(),
+          ),
+          GoRoute(
+            path: 'two-step',
+            builder: (context, state) => const TwoStepVerificationScreen(),
+          ),
+          GoRoute(
+            path: 'create-pin',
+            builder: (context, state) => const CreatePinScreen(),
+          ),
+          GoRoute(
+            path: 'reset-password',
+            builder: (context, state) => const ResetPasswordRequestScreen(),
+          ),
+          GoRoute(
             path: 'about',
             builder: (context, state) => const AboutAppScreen(),
           ),
@@ -363,7 +349,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/app',
-        redirect: (context, state) => '/app/home',
+        redirect: (context, state) => _kHomeRoute,
       ),
       GoRoute(
         path: '/stocks',
@@ -444,6 +430,45 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
+enum _RouteAccess { public, protected }
+
+const Set<String> _publicRoutes = {
+  '/splash',
+  '/onboarding',
+  '/get-started-v1',
+  '/get-started-v2',
+  '/login',
+  '/register',
+};
+
+_RouteAccess _routeAccessForLocation(String location) {
+  if (location.startsWith('/auth') || _publicRoutes.contains(location)) {
+    return _RouteAccess.public;
+  }
+  return _RouteAccess.protected;
+}
+
+@visibleForTesting
+String? resolveAppAuthRedirect({
+  required String location,
+  required domain.AuthState authState,
+}) {
+  final isAuthenticated = authState.isAuthenticated;
+  final routeAccess = _routeAccessForLocation(location);
+  final isPublicRoute = routeAccess == _RouteAccess.public;
+
+  if (!isAuthenticated && !isPublicRoute) {
+    return _kLoginRoute;
+  }
+  if (isAuthenticated && location.startsWith('/auth')) {
+    return _kHomeRoute;
+  }
+  if (isAuthenticated && location == '/splash') {
+    return _kHomeRoute;
+  }
+  return null;
+}
+
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     _subscription = stream.asBroadcastStream().listen(
@@ -458,5 +483,37 @@ class GoRouterRefreshStream extends ChangeNotifier {
   void dispose() {
     _subscription.cancel();
     super.dispose();
+  }
+}
+
+class _RouterNotFoundScreen extends StatelessWidget {
+  const _RouterNotFoundScreen({required this.state});
+
+  final GoRouterState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Page not found')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'No route matched "${state.uri.path}".',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => context.go(_kHomeRoute),
+                child: const Text('Go to Home'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

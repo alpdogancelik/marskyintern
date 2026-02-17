@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/mock_stocks_repository.dart';
+import '../data/repositories.dart';
 import '../domain/entities/stock.dart';
 import '../domain/stocks_repository.dart';
 

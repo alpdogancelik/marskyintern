@@ -15,7 +15,8 @@ void main() {
     final mapped = mapDioException(error);
 
     expect(mapped, isA<NetworkException>());
-    expect(mapped.message, 'Network error. Check your connection and try again.');
+    expect(
+        mapped.message, 'Network error. Check your connection and try again.');
   });
 
   test('maps 401 response to UnauthorizedException', () {
@@ -52,6 +53,23 @@ void main() {
 
     expect(mapped, isA<ApiException>());
     expect(mapped.message, 'Invalid query');
+  });
+
+  test('maps 404 response to NotFoundException', () {
+    final error = DioException(
+      requestOptions: requestOptions,
+      response: Response(
+        requestOptions: requestOptions,
+        statusCode: 404,
+        data: {'message': 'Coin not found'},
+      ),
+      type: DioExceptionType.badResponse,
+    );
+
+    final mapped = mapDioException(error);
+
+    expect(mapped, isA<NotFoundException>());
+    expect(mapped.message, 'Coin not found');
   });
 
   test('maps unknown non-status error to UnknownException', () {

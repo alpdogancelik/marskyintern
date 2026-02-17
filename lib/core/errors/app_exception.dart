@@ -34,3 +34,11 @@ class UnknownException extends AppException {
 class ApiException extends AppException {
   const ApiException(super.message);
 }
+
+class NotFoundException extends AppException {
+  const NotFoundException(super.message);
+}
+
+class ParsingException extends AppException {
+  const ParsingException(super.message);
+}

@@ -1,30 +1,76 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-final favoritesLocalDataSourceProvider = Provider<FavoritesLocalDataSource>((ref) {
-  return HiveFavoritesLocalDataSource();
-});
+final favoritesLocalDataSourceProvider = Provider<FavoritesLocalDataSource>(
+  (ref) {
+    return HiveFavoritesLocalDataSource();
+  },
+);
 
 abstract class FavoritesLocalDataSource {
-  Future<Set<String>> getFavorites(String userId);
-  Future<void> saveFavorites(String userId, Set<String> values);
+  Future<Set<String>> getFavorites(String profileId);
+  Stream<Set<String>> watchFavorites(String profileId);
+  Future<void> addFavorite({
+    required String profileId,
+    required String coinId,
+  });
+  Future<void> removeFavorite({
+    required String profileId,
+    required String coinId,
+  });
+  Future<bool> isFavorite({
+    required String profileId,
+    required String coinId,
+  });
 }
 
 class HiveFavoritesLocalDataSource implements FavoritesLocalDataSource {
   static const _boxName = 'favorites_store';
 
   @override
-  Future<Set<String>> getFavorites(String userId) async {
+  Future<Set<String>> getFavorites(String profileId) async {
     final box = await _openBox();
-    final raw = box.get(_storageKey(userId), defaultValue: <String>[]);
-    final values = raw is List ? raw : <dynamic>[];
-    return values.map((item) => item.toString()).toSet();
+    return _readFavorites(box, profileId);
   }
 
   @override
-  Future<void> saveFavorites(String userId, Set<String> values) async {
+  Stream<Set<String>> watchFavorites(String profileId) async* {
     final box = await _openBox();
-    await box.put(_storageKey(userId), values.toList());
+    yield _readFavorites(box, profileId);
+    yield* box.watch(key: _storageKey(profileId)).map((_) {
+      return _readFavorites(box, profileId);
+    });
+  }
+
+  @override
+  Future<void> addFavorite({
+    required String profileId,
+    required String coinId,
+  }) async {
+    final box = await _openBox();
+    final current = _readFavorites(box, profileId);
+    current.add(coinId);
+    await box.put(_storageKey(profileId), current.toList(growable: false));
+  }
+
+  @override
+  Future<void> removeFavorite({
+    required String profileId,
+    required String coinId,
+  }) async {
+    final box = await _openBox();
+    final current = _readFavorites(box, profileId);
+    current.remove(coinId);
+    await box.put(_storageKey(profileId), current.toList(growable: false));
+  }
+
+  @override
+  Future<bool> isFavorite({
+    required String profileId,
+    required String coinId,
+  }) async {
+    final favorites = await getFavorites(profileId);
+    return favorites.contains(coinId);
   }
 
   Future<Box<dynamic>> _openBox() async {
@@ -34,5 +80,11 @@ class HiveFavoritesLocalDataSource implements FavoritesLocalDataSource {
     return Hive.openBox<dynamic>(_boxName);
   }
 
-  String _storageKey(String userId) => 'favorites_$userId';
+  Set<String> _readFavorites(Box<dynamic> box, String profileId) {
+    final raw = box.get(_storageKey(profileId), defaultValue: <String>[]);
+    final values = raw is List ? raw : <dynamic>[];
+    return values.map((item) => item.toString()).toSet();
+  }
+
+  String _storageKey(String profileId) => 'favorites_$profileId';
 }

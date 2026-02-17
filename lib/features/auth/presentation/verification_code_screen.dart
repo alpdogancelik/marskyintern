@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../ui/kit/ui_kit.dart';
 import '../../../ui/theme/app_tokens.dart';
+import 'auth_controller.dart';
 
-class VerificationCodeScreen extends StatefulWidget {
+class VerificationCodeScreen extends ConsumerStatefulWidget {
   const VerificationCodeScreen({
     super.key,
     this.email,
@@ -13,18 +17,40 @@ class VerificationCodeScreen extends StatefulWidget {
   final String? email;
 
   @override
-  State<VerificationCodeScreen> createState() => _VerificationCodeScreenState();
+  ConsumerState<VerificationCodeScreen> createState() =>
+      _VerificationCodeScreenState();
 }
 
-class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
+class _VerificationCodeScreenState extends ConsumerState<VerificationCodeScreen> {
   final List<TextEditingController> _controllers = List.generate(
     6,
     (_) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  Timer? _timer;
+  int _secondsLeft = 180;
+  bool _isSubmitting = false;
+  bool _isResending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_secondsLeft <= 0) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _secondsLeft -= 1);
+    });
+  }
 
   @override
   void dispose() {
+    _timer?.cancel();
     for (final controller in _controllers) {
       controller.dispose();
     }
@@ -38,13 +64,14 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   Widget build(BuildContext context) {
     final code = _controllers.map((controller) => controller.text).join();
     final codeComplete = code.length == 6;
+
     return AuthScaffold(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: AppTokens.space4),
+          const SizedBox(height: AppTokens.space2),
           Text(
-            'Authentication Code',
+            'Enter Verification Code',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
@@ -53,10 +80,12 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
           const SizedBox(height: AppTokens.space2),
           Text(
             widget.email == null
-                ? 'Enter the verification code sent to your email.'
-                : 'Enter the verification code sent to ${widget.email}.',
+                ? 'Enter the 6-digit code sent to your email.'
+                : 'Enter the 6-digit code sent to ${widget.email}.',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(height: AppTokens.space8),
           Row(
@@ -69,15 +98,27 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
               );
             }),
           ),
+          const SizedBox(height: AppTokens.space3),
+          Center(
+            child: Text(
+              _secondsLeft > 0
+                  ? 'Resend code ${_formatTimer(_secondsLeft)}'
+                  : 'You can resend the code now',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
           const SizedBox(height: AppTokens.space6),
           PrimaryButton(
-            label: 'Continue',
+            label: 'Verify',
             onPressed:
-                codeComplete ? () => context.go('/auth/biometric-face') : null,
+                codeComplete && !_isSubmitting ? () => _verifyCode(code) : null,
+            isLoading: _isSubmitting,
           ),
           const SizedBox(height: AppTokens.space2),
           TextButton(
-            onPressed: () => _showMessage('Resend Code'),
+            onPressed: _secondsLeft > 0 || _isResending ? null : _handleResend,
             child: const Text('Resend Code'),
           ),
           TextButton(
@@ -98,10 +139,77 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
     setState(() {});
   }
 
-  void _showMessage(String action) {
+  void _handleResend() {
+    final email = widget.email?.trim();
+    if (email == null || email.isEmpty) {
+      _showMessage('Missing email address. Please sign up again.');
+      return;
+    }
+    setState(() => _isResending = true);
+    ref
+        .read(authControllerProvider.notifier)
+        .resendSignupOtp(email: email)
+        .then((result) {
+      if (!mounted) {
+        return;
+      }
+      if (!result.success) {
+        _showMessage(result.message ?? 'Failed to resend verification code.');
+        return;
+      }
+      setState(() => _secondsLeft = 180);
+      _timer?.cancel();
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+        if (_secondsLeft <= 0) {
+          timer.cancel();
+          return;
+        }
+        setState(() => _secondsLeft -= 1);
+      });
+      _showMessage('Verification code resent.');
+    }).whenComplete(() {
+      if (mounted) {
+        setState(() => _isResending = false);
+      }
+    });
+  }
+
+  Future<void> _verifyCode(String code) async {
+    final email = widget.email?.trim();
+    if (email == null || email.isEmpty) {
+      _showMessage('Missing email address. Please sign up again.');
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    final result = await ref.read(authControllerProvider.notifier).verifySignupOtp(
+          email: email,
+          token: code,
+        );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _isSubmitting = false);
+    if (!result.success) {
+      _showMessage(result.message ?? 'Verification failed. Please try again.');
+      return;
+    }
+    context.go('/app/home');
+  }
+
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$action coming soon')));
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _formatTimer(int seconds) {
+    final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
+    final remain = (seconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$remain';
   }
 }
 

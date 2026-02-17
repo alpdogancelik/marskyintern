@@ -53,3 +53,5 @@ app.*.map.json
 
 # Codex temp workspace artifacts
 .codex_tmp/
+
+.codex_tmp/

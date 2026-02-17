@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../ui/kit/ui_kit.dart';
 import '../../../ui/theme/app_tokens.dart';
-import '../data/mock_stocks_repository.dart';
+import '../data/repositories.dart';
 import '../domain/entities/stock.dart';
 import '../domain/stocks_repository.dart';
 import '../widgets/stock_row.dart';

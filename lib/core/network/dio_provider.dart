@@ -11,6 +11,7 @@ final dioProvider = Provider<Dio>((ref) {
       connectTimeout: const Duration(seconds: 12),
       receiveTimeout: const Duration(seconds: 12),
       headers: {
+        // Keep auth header internal; do not print or log this token.
         'x-access-token': Env.coinrankingApiKey(),
       },
     ),

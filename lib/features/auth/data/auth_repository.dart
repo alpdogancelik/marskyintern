@@ -2,9 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/supabase/supabase_config.dart';
+import '../domain/auth_state.dart' as domain;
 
 abstract class AuthRepository {
-  Stream<AuthState> get sessionStream;
+  Stream<domain.AuthState> authStateChanges();
+  domain.AuthState get currentAuthState;
+
+  // Legacy accessors used by presentation/controllers.
   Session? get currentSession;
   User? get currentUser;
   String? get currentUserId;
@@ -24,6 +28,15 @@ abstract class AuthRepository {
     required String email,
   });
 
+  Future<AuthResponse> verifySignupOtp({
+    required String email,
+    required String token,
+  });
+
+  Future<void> resendSignupOtp({
+    required String email,
+  });
+
   Future<void> signOut();
 }
 
@@ -38,7 +51,16 @@ class SupabaseAuthRepository implements AuthRepository {
   final SupabaseClient _client;
 
   @override
-  Stream<AuthState> get sessionStream => _client.auth.onAuthStateChange;
+  Stream<domain.AuthState> authStateChanges() {
+    return _client.auth.onAuthStateChange
+        .map((event) => _mapToAuthState(event.session))
+        .distinct();
+  }
+
+  @override
+  domain.AuthState get currentAuthState {
+    return _mapToAuthState(_client.auth.currentSession);
+  }
 
   @override
   Session? get currentSession => _client.auth.currentSession;
@@ -81,5 +103,35 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AuthResponse> verifySignupOtp({
+    required String email,
+    required String token,
+  }) {
+    return _client.auth.verifyOTP(
+      email: email,
+      token: token,
+      type: OtpType.signup,
+    );
+  }
+
+  @override
+  Future<void> resendSignupOtp({
+    required String email,
+  }) async {
+    await _client.auth.resend(
+      email: email,
+      type: OtpType.signup,
+    );
+  }
+
+  @override
   Future<void> signOut() => _client.auth.signOut();
+
+  domain.AuthState _mapToAuthState(Session? session) {
+    final userId = session?.user.id ?? _client.auth.currentUser?.id;
+    if (userId == null || userId.trim().isEmpty) {
+      return const domain.AuthState.unauthenticated();
+    }
+    return domain.AuthState.authenticated(userId);
+  }
 }

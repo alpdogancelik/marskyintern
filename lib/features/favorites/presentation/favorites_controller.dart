@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/errors/app_exception.dart';
 import '../../auth/data/auth_repository.dart';
-import '../data/favorites_local_datasource.dart';
+import '../../auth/domain/auth_state.dart';
+import '../domain/usecases/get_favorites.dart';
+import '../domain/usecases/observe_favorites.dart';
+import '../domain/usecases/toggle_favorite.dart';
 
 final favoritesControllerProvider =
     AsyncNotifierProvider<FavoritesController, Set<String>>(
@@ -13,36 +14,43 @@ final favoritesControllerProvider =
 );
 
 class FavoritesController extends AsyncNotifier<Set<String>> {
-  StreamSubscription<AuthState>? _subscription;
+  static const _defaultProfileId = 'local_profile';
+
+  StreamSubscription<AuthState>? _authSubscription;
+  StreamSubscription<Set<String>>? _favoritesSubscription;
+  String _activeProfileId = _defaultProfileId;
 
   @override
   Future<Set<String>> build() async {
-    final localDataSource = ref.read(favoritesLocalDataSourceProvider);
-    final repository = ref.read(authRepositoryProvider);
+    final authRepository = ref.read(authRepositoryProvider);
+    final getFavorites = ref.read(getFavoritesUseCaseProvider);
+    final observeFavorites = ref.read(observeFavoritesUseCaseProvider);
 
-    _subscription = repository.sessionStream.listen((event) {
-      final userId = event.session?.user.id;
-      if (userId == null) {
-        state = const AsyncData(<String>{});
+    _authSubscription = authRepository.authStateChanges().listen((event) {
+      final profileId = _resolveProfileId(event.userId);
+      if (_activeProfileId == profileId) {
         return;
       }
-      unawaited(_loadForUser(userId));
+      _bindFavoritesStream(
+        profileId: profileId,
+        observeFavorites: observeFavorites,
+      );
     });
-    ref.onDispose(() => _subscription?.cancel());
+    ref.onDispose(() {
+      _authSubscription?.cancel();
+      _favoritesSubscription?.cancel();
+    });
 
-    final userId = repository.currentUserId;
-    if (userId == null) {
-      return const <String>{};
-    }
-    return localDataSource.getFavorites(userId);
+    final initialProfileId =
+        _resolveProfileId(authRepository.currentAuthState.userId);
+    _bindFavoritesStream(
+      profileId: initialProfileId,
+      observeFavorites: observeFavorites,
+    );
+    return getFavorites(profileId: initialProfileId);
   }
 
   Future<void> toggle(String uuid) async {
-    final userId = ref.read(authRepositoryProvider).currentUserId;
-    if (userId == null) {
-      throw const ConfigurationException('Please log in to manage favorites.');
-    }
-
     final current = state.valueOrNull ?? const <String>{};
     final next = <String>{...current};
     if (next.contains(uuid)) {
@@ -52,15 +60,39 @@ class FavoritesController extends AsyncNotifier<Set<String>> {
     }
 
     state = AsyncData(next);
-    await ref
-        .read(favoritesLocalDataSourceProvider)
-        .saveFavorites(userId, next);
+    try {
+      final updated = await ref.read(toggleFavoriteUseCaseProvider)(
+        profileId: _activeProfileId,
+        coinId: uuid,
+      );
+      state = AsyncData(updated);
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      state = AsyncData(current);
+      rethrow;
+    }
   }
 
-  Future<void> _loadForUser(String userId) async {
-    final favorites =
-        await ref.read(favoritesLocalDataSourceProvider).getFavorites(userId);
-    state = AsyncData(favorites);
+  void _bindFavoritesStream({
+    required String profileId,
+    required ObserveFavoritesUseCase observeFavorites,
+  }) {
+    _activeProfileId = profileId;
+    _favoritesSubscription?.cancel();
+    _favoritesSubscription = observeFavorites(profileId: profileId).listen(
+      (favorites) => state = AsyncData(favorites),
+      onError: (Object error, StackTrace stackTrace) {
+        state = AsyncError(error, stackTrace);
+      },
+    );
+  }
+
+  String _resolveProfileId(String? userId) {
+    final id = userId?.trim();
+    if (id == null || id.isEmpty) {
+      return _defaultProfileId;
+    }
+    return id;
   }
 
   void clearMemory() {

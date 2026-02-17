@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/empty_state.dart';
+import '../../settings/theme/theme_mode_controller.dart';
 import '../../../ui/kit/ui_kit.dart';
 import '../../../ui/theme/app_tokens.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -17,10 +18,12 @@ class AccountScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileControllerProvider);
-    final settingsState = ref.watch(settingsControllerProvider);
+    final settingsValue = ref.watch(settingsControllerProvider).valueOrNull;
+    final themeMode = ref.watch(themeModeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
 
     return SettingsPageScaffold(
-      title: 'Account & Setting',
+      title: 'Settings',
       child: profileState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _ErrorCard(
@@ -28,129 +31,91 @@ class AccountScreen extends ConsumerWidget {
           onRetry: () => ref.read(profileControllerProvider.notifier).load(),
         ),
         data: (profileData) {
-          return settingsState.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => _ErrorCard(
-              message: error.toString(),
-              onRetry: () =>
-                  ref.read(settingsControllerProvider.notifier).load(),
-            ),
-            data: (settingsData) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ProfileHeaderCard(
-                  profile: profileData.profile,
-                  onEdit: () => context.push('/account/personal/edit'),
-                ),
-                const SizedBox(height: AppTokens.space5),
-                SettingsSection(
-                  title: 'Account Details',
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ProfileHeaderCard(
+                profile: profileData.profile,
+                onEdit: () => context.push('/account/personal/edit'),
+              ),
+              const SizedBox(height: AppTokens.space5),
+              AppCard(
+                padding: const EdgeInsets.symmetric(vertical: AppTokens.space2),
+                child: Column(
                   children: [
-                    SettingsMenuTile(
-                      title: 'Personal Details',
-                      iconName: 'digital-asset',
-                      onTap: () => context.push('/account/personal'),
-                    ),
-                    SettingsMenuTile(
-                      title: 'Identity Verification',
-                      iconName: 'security-document',
-                      onTap: () => _showComingSoon(context),
-                    ),
-                    SettingsMenuTile(
-                      title: 'Transaction History',
-                      iconName: 'receipt',
-                      onTap: () => context.push('/activity'),
-                    ),
-                    SettingsMenuTile(
-                      title: 'Bank Account',
-                      iconName: 'bank',
-                      onTap: () => context.push('/account/banks'),
-                    ),
-                    SettingsMenuTile(
-                      title: 'Social Media Link',
-                      iconName: 'chain',
-                      onTap: () => context.push('/account/social'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppTokens.space4),
-                SettingsSection(
-                  title: 'Settings',
-                  children: [
-                    SettingsMenuTile(
-                      title: 'Push Notifications',
-                      iconName: 'announcement',
-                      onTap: () => context.push('/account/notifications'),
-                    ),
-                    SettingsMenuTile(
-                      title: 'Payment Method',
-                      iconName: 'credit-card',
-                      onTap: () => context.push('/account/payment-methods'),
-                    ),
-                    SettingsMenuTile(
-                      title: 'Select Language',
-                      iconName: 'cloud',
-                      trailingText: settingsData.languageLabel,
-                      onTap: () => context.push('/account/language'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppTokens.space4),
-                SettingsSection(
-                  title: 'Support',
-                  children: [
-                    SettingsMenuTile(
-                      title: 'About App',
-                      iconName: 'analytics',
-                      onTap: () => context.push('/account/about'),
-                    ),
-                    SettingsMenuTile(
-                      title: 'Help Center',
-                      iconName: 'headset',
-                      onTap: () => context.push('/account/help'),
-                    ),
-                    SettingsMenuTile(
-                      title: 'FAQ',
-                      iconName: 'documents',
-                      onTap: () => context.push('/account/faq'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppTokens.space4),
-                SettingsSection(
-                  title: 'Legal',
-                  children: [
-                    SettingsMenuTile(
-                      title: 'Privacy & Policy',
-                      iconName: 'lock',
-                      onTap: () => context.push('/account/privacy'),
-                    ),
-                    SettingsMenuTile(
-                      title: 'Terms & Condition',
-                      iconName: 'agreement',
-                      onTap: () => context.push('/account/terms'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppTokens.space4),
-                SettingsSection(
-                  title: 'Referral',
-                  children: [
-                    SettingsMenuTile(
-                      title: 'Referral Code',
-                      iconName: 'gift-box',
+                    SettingTile(
+                      icon: Icons.group_add_outlined,
+                      label: 'Invite friends',
+                      subtitle: 'Invite friends and get 50 coins',
                       onTap: () => context.push('/account/referral'),
                     ),
+                    SettingTile(
+                      icon: Icons.person_outline_rounded,
+                      label: 'My Account',
+                      onTap: () => context.push('/account/personal'),
+                    ),
+                    SettingTile(
+                      icon: Icons.credit_card_outlined,
+                      label: 'Billing / Payment',
+                      onTap: () => context.push('/account/payment-methods'),
+                    ),
+                    SettingTile(
+                      icon: Icons.support_agent_outlined,
+                      label: 'FAQ & Support',
+                      onTap: () => context.push('/account/help'),
+                    ),
+                    SettingTile(
+                      icon: Icons.verified_user_outlined,
+                      label: 'Identity Verification',
+                      onTap: () => context.push('/account/verify-identity'),
+                    ),
+                    SettingTile(
+                      icon: Icons.sms_outlined,
+                      label: '2-step verification',
+                      onTap: () => context.push('/account/two-step'),
+                    ),
+                    SettingTile(
+                      icon: Icons.pin_outlined,
+                      label: 'Create New Pin',
+                      onTap: () => context.push('/account/create-pin'),
+                    ),
+                    SettingTile(
+                      icon: Icons.lock_reset_outlined,
+                      label: 'Reset password',
+                      onTap: () => context.push('/account/reset-password'),
+                    ),
+                    SettingTile(
+                      icon: Icons.language_rounded,
+                      label: 'Language',
+                      subtitle: settingsValue?.languageLabel,
+                      onTap: () => context.push('/account/language'),
+                    ),
+                    SettingTile(
+                      icon: Icons.dark_mode_outlined,
+                      label: 'Dark Mode',
+                      trailing: Switch.adaptive(
+                        value: isDarkMode,
+                        onChanged: (value) => ref
+                            .read(themeModeProvider.notifier)
+                            .setDarkModeEnabled(value),
+                      ),
+                      onTap: () => ref
+                          .read(themeModeProvider.notifier)
+                          .setDarkModeEnabled(!isDarkMode),
+                    ),
+                    SettingTile(
+                      icon: Icons.logout_rounded,
+                      label: 'Log out',
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      onTap: () => _confirmSignOut(context, ref),
+                    ),
                   ],
                 ),
-                const SizedBox(height: AppTokens.space5),
-                SecondaryButton(
-                  label: 'Log out',
-                  onPressed: () => _confirmSignOut(context, ref),
-                  leading: const Icon(Icons.logout_rounded, size: 18),
-                ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
@@ -179,12 +144,6 @@ class AccountScreen extends ConsumerWidget {
       return;
     }
     await ref.read(authControllerProvider.notifier).signOut();
-  }
-
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Coming soon')));
   }
 }
 

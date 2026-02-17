@@ -46,8 +46,8 @@ class AuthScaffold extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         child: IconButton(
                           onPressed: onClose ?? () => _handleClose(context),
-                          tooltip: 'Close authentication',
-                          icon: const Icon(Icons.close),
+                          tooltip: 'Back',
+                          icon: const Icon(Icons.arrow_back),
                         ),
                       ),
                       const SizedBox(height: AppTokens.space2),

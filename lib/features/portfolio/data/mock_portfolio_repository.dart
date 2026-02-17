@@ -1,6 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../coins/data/coins_repository_impl.dart';
 import '../../coins/domain/coins_repository.dart';
 import '../../coins/domain/entities/coin.dart';
 import '../domain/entities/allocation_slice.dart';
@@ -8,11 +5,6 @@ import '../domain/entities/holding.dart';
 import '../domain/entities/portfolio_snapshot.dart';
 import '../domain/entities/portfolio_summary.dart';
 import '../domain/portfolio_repository.dart';
-
-final portfolioRepositoryProvider = Provider<PortfolioRepository>((ref) {
-  final coinsRepository = ref.watch(coinsRepositoryProvider);
-  return MockPortfolioRepository(coinsRepository);
-});
 
 class MockPortfolioRepository implements PortfolioRepository {
   MockPortfolioRepository(this._coinsRepository);

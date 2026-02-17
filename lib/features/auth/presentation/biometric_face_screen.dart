@@ -8,11 +8,12 @@ class BiometricFaceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const BiometricPromptScreen(
-      title: 'Enable Face ID',
+      title: 'Setup Face ID',
       subtitle:
-          'This helps check that only you can unlock your wallet experience.',
-      primaryLabel: 'Enable Face ID',
+          'Unlock GoCrypto with your face ID for a faster and secure sign in.',
+      primaryLabel: 'Scan my face',
       icon: Icons.face_retouching_natural,
+      primaryRoute: '/auth/biometric-fingerprint',
       skipRoute: '/auth/biometric-fingerprint',
     );
   }

@@ -30,7 +30,7 @@ class AuthViewState {
     );
   }
 
-  factory AuthViewState.authenticated(User user) {
+  factory AuthViewState.authenticated(User? user) {
     return AuthViewState(
       status: AuthStatus.authenticated,
       user: user,

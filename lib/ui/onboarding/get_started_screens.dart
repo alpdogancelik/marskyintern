@@ -4,14 +4,20 @@ import 'package:go_router/go_router.dart';
 import '../../core/widgets/app_icon.dart';
 import '../kit/ui_kit.dart';
 import '../theme/app_tokens.dart';
-import 'widgets/get_started_header.dart';
 
 class GetStartedScreenV1 extends StatelessWidget {
   const GetStartedScreenV1({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const _GetStartedScreen(showAssetPreview: false);
+    return const _GetStartedScreen(
+      title: 'Start with GoCrypto',
+      subtitle: 'Trade, track, and manage your crypto assets in one app.',
+      primaryLabel: 'Get Started',
+      primaryRoute: '/auth/login',
+      alternateActionLabel: 'Create account',
+      alternateRoute: '/auth/signup',
+    );
   }
 }
 
@@ -20,162 +26,163 @@ class GetStartedScreenV2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _GetStartedScreen(showAssetPreview: true);
+    return const _GetStartedScreen(
+      title: 'Welcome to GoCrypto',
+      subtitle: 'Secure your portfolio and move funds quickly.',
+      primaryLabel: 'Get Started',
+      primaryRoute: '/auth/login',
+      alternateActionLabel: 'Sign in',
+      alternateRoute: '/auth/login',
+    );
   }
 }
 
 class _GetStartedScreen extends StatelessWidget {
   const _GetStartedScreen({
-    required this.showAssetPreview,
+    required this.title,
+    required this.subtitle,
+    required this.primaryLabel,
+    required this.primaryRoute,
+    required this.alternateActionLabel,
+    required this.alternateRoute,
   });
 
-  final bool showAssetPreview;
+  final String title;
+  final String subtitle;
+  final String primaryLabel;
+  final String primaryRoute;
+  final String alternateActionLabel;
+  final String alternateRoute;
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      child: AppCard(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: AppTokens.space2),
-                        GetStartedHeader(showAssetPreview: showAssetPreview),
-                        const SizedBox(height: AppTokens.space4),
-                        Text(
-                          'Get Started',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(height: AppTokens.space2),
-                        Text(
-                          'All in One Investment Platform',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(fontSize: 15),
-                        ),
-                        const SizedBox(height: AppTokens.space8),
-                        PrimaryButton(
-                          label: 'Continue with Email',
-                          semanticLabel: 'Continue with Email',
-                          onPressed: () => context.go('/auth/login'),
-                          icon: const AppIcon(
-                            name: 'bitcoin-mail',
-                            semanticLabel: 'Email icon',
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(height: AppTokens.space3),
-                        SecondaryButton(
-                          label: 'Continue with Apple',
-                          semanticLabel: 'Continue with Apple',
-                          onPressed: () => _showComingSoon(context),
-                          leading: const Icon(Icons.apple, size: 20),
-                        ),
-                        const SizedBox(height: AppTokens.space3),
-                        SecondaryButton(
-                          label: 'Continue with Google',
-                          semanticLabel: 'Continue with Google',
-                          onPressed: () => _showComingSoon(context),
-                          leading: const _GoogleGlyph(),
-                        ),
-                      ],
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTokens.pageHorizontalPadding,
+            AppTokens.space4,
+            AppTokens.pageHorizontalPadding,
+            AppTokens.space4,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: AppTokens.space2),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
-                    Column(
-                      children: [
-                        const AppDivider(
-                          margin:
-                              EdgeInsets.symmetric(vertical: AppTokens.space5),
-                        ),
-                        Center(
-                          child: Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Text(
-                                'Don\u2019t have an account? ',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                              ),
-                              TextButton(
-                                onPressed: () => context.go('/auth/signup'),
-                                style: TextButton.styleFrom(
-                                  minimumSize: const Size(
-                                    AppTokens.minTapTarget,
-                                    AppTokens.minTapTarget,
-                                  ),
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 4),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: const Text('Sign Up'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: AppTokens.space4),
-                      ],
+              ),
+              const SizedBox(height: AppTokens.space2),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                  ],
+              ),
+              const SizedBox(height: AppTokens.sectionGapLg),
+              const _GetStartedHeroRow(),
+              const Spacer(),
+              PrimaryButton(
+                label: primaryLabel,
+                onPressed: () => context.go(primaryRoute),
+              ),
+              const SizedBox(height: AppTokens.space2),
+              Center(
+                child: TextButton(
+                  onPressed: () => context.go(alternateRoute),
+                  child: Text(alternateActionLabel),
                 ),
               ),
-            );
-          },
+            ],
+          ),
         ),
       ),
-    );
-  }
-
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Coming soon')),
     );
   }
 }
 
-class _GoogleGlyph extends StatelessWidget {
-  const _GoogleGlyph();
+class _GetStartedHeroRow extends StatelessWidget {
+  const _GetStartedHeroRow();
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.onSurface;
-    return Container(
-      width: 20,
-      height: 20,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        'G',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: color,
+    return Row(
+      children: const [
+        Expanded(
+          child: _GetStartedFeatureCard(
+            title: 'Market',
+            description: 'Track top assets and price movement.',
+            iconName: 'chart-candle',
+          ),
         ),
+        SizedBox(width: AppTokens.space3),
+        Expanded(
+          child: _GetStartedFeatureCard(
+            title: 'Wallet',
+            description: 'Store and transfer crypto securely.',
+            iconName: 'wallet',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GetStartedFeatureCard extends StatelessWidget {
+  const _GetStartedFeatureCard({
+    required this.title,
+    required this.description,
+    required this.iconName,
+  });
+
+  final String title;
+  final String description;
+  final String iconName;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return AppCard(
+      padding: const EdgeInsets.all(AppTokens.space4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+            ),
+            child: Center(
+              child: AppIcon(
+                name: iconName,
+                semanticLabel: '$title icon',
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppTokens.space3),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: AppTokens.space2),
+          Text(
+            description,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+          ),
+        ],
       ),
     );
   }

@@ -29,6 +29,10 @@ class ExceptionMapper {
     }
 
     final statusCode = error.response?.statusCode;
+    if (statusCode == 404) {
+      final message = _extractApiMessage(error.response?.data);
+      return NotFoundException(message ?? 'Requested resource was not found.');
+    }
     if (statusCode == 401 || statusCode == 403) {
       return const UnauthorizedException(
         'CoinRanking rejected the API key. Verify your key/subscription.',
@@ -51,15 +55,9 @@ class ExceptionMapper {
       );
     }
 
-    final payload = error.response?.data;
-    if (payload is Map<String, dynamic>) {
-      final bodyMessage = payload['message']?.toString();
-      if (bodyMessage != null) {
-        final trimmed = bodyMessage.trim();
-        if (trimmed.isNotEmpty) {
-          return ApiException(trimmed);
-        }
-      }
+    final apiMessage = _extractApiMessage(error.response?.data);
+    if (apiMessage != null) {
+      return ApiException(apiMessage);
     }
 
     if (kIsWeb || _looksLikeCors(details)) {
@@ -81,7 +79,23 @@ class ExceptionMapper {
 
   static bool _looksLikeSocketIssue(String text) {
     final lower = text.toLowerCase();
-    return lower.contains('socketexception') || lower.contains('failed host lookup');
+    return lower.contains('socketexception') ||
+        lower.contains('failed host lookup');
+  }
+
+  static String? _extractApiMessage(Object? payload) {
+    if (payload is! Map<String, dynamic>) {
+      return null;
+    }
+    final bodyMessage = payload['message']?.toString();
+    if (bodyMessage == null) {
+      return null;
+    }
+    final trimmed = bodyMessage.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed;
   }
 }
 

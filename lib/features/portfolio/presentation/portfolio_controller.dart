@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/mock_portfolio_repository.dart';
+import '../data/repositories.dart';
 import '../domain/entities/portfolio_snapshot.dart';
 
 enum PortfolioSegment { crypto, stocks }

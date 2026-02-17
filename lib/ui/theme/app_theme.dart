@@ -11,36 +11,35 @@ class AppTheme {
   static ThemeData _buildTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
     final scheme = ColorScheme.fromSeed(
-      seedColor: AppTokens.primary,
+      seedColor: AppTokens.primaryBlue,
       brightness: brightness,
     ).copyWith(
-      primary: AppTokens.primary,
+      primary: AppTokens.primaryBlue,
       onPrimary: Colors.white,
-      secondary: AppTokens.primary,
+      secondary: AppTokens.primaryBlue,
       onSecondary: Colors.white,
-      error: const Color(0xFFBC1535),
+      error: AppTokens.danger,
       onError: Colors.white,
-      surface: isDark ? const Color(0xFF1D1E2B) : AppTokens.lightSurface,
-      onSurface: isDark ? const Color(0xFFF1F2FB) : AppTokens.textStrong,
+      surface: isDark ? AppTokens.darkCard : AppTokens.lightCard,
+      onSurface: isDark ? const Color(0xFFE2E8F0) : AppTokens.textStrong,
       surfaceContainerHighest:
-          isDark ? const Color(0xFF2A2C3E) : const Color(0xFFEFF1F8),
+          isDark ? const Color(0xFF1C2A3E) : const Color(0xFFEDF2FA),
       surfaceContainerHigh:
-          isDark ? const Color(0xFF252638) : const Color(0xFFF4F6FC),
+          isDark ? const Color(0xFF162336) : AppTokens.lightCard,
       surfaceContainerLow:
-          isDark ? const Color(0xFF1F2030) : const Color(0xFFF9FAFF),
+          isDark ? const Color(0xFF132034) : const Color(0xFFF8FAFD),
       surfaceContainerLowest:
-          isDark ? const Color(0xFF141521) : AppTokens.lightBackground,
-      onSurfaceVariant:
-          isDark ? const Color(0xFFB5B9D0) : const Color(0xFF6C7086),
-      outline: isDark ? const Color(0xFF3C3F56) : AppTokens.lightBorder,
+          isDark ? AppTokens.darkBackground : AppTokens.lightBackground,
+      onSurfaceVariant: isDark ? const Color(0xFF94A3B8) : AppTokens.mutedLabel,
+      outline: isDark ? AppTokens.darkBorder : AppTokens.lightBorder,
       outlineVariant:
-          isDark ? const Color(0xFF31344A) : const Color(0xFFE8EAF3),
-      inverseSurface: isDark ? Colors.white : const Color(0xFF1E2030),
-      onInverseSurface: isDark ? const Color(0xFF151726) : Colors.white,
+          isDark ? const Color(0xFF1F2D44) : const Color(0xFFDAE3F0),
+      inverseSurface: isDark ? Colors.white : const Color(0xFF0F172A),
+      onInverseSurface: isDark ? const Color(0xFF0F172A) : Colors.white,
       inversePrimary:
-          isDark ? const Color(0xFFB6A8FF) : const Color(0xFF3D2B9B),
-      tertiary: isDark ? const Color(0xFF96B4FF) : const Color(0xFF4E75DB),
-      onTertiary: isDark ? const Color(0xFF0B1A43) : Colors.white,
+          isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
+      tertiary: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+      onTertiary: Colors.white,
     );
 
     final base = ThemeData(
@@ -61,13 +60,58 @@ class AppTheme {
         backgroundColor: scheme.inverseSurface,
         contentTextStyle: TextStyle(color: scheme.onInverseSurface),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
         ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant,
+        thickness: 1,
+        space: 1,
+      ),
+      cardTheme: CardThemeData(
+        color: scheme.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: isDark ? const Color(0xFF152238) : Colors.white,
+        hintStyle: TextStyle(
+          color: scheme.onSurfaceVariant,
+          fontSize: 14,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppTokens.space4,
+          vertical: AppTokens.space3,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusLg),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusLg),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusLg),
+          borderSide: BorderSide(color: scheme.primary, width: 1.2),
+        ),
+      ),
+      iconTheme: IconThemeData(
+        color: scheme.onSurface,
       ),
     );
 
     return base.copyWith(
       textTheme: base.textTheme.copyWith(
+        headlineLarge: base.textTheme.headlineLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: scheme.onSurface,
+          letterSpacing: -0.3,
+        ),
         headlineMedium: base.textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w800,
           letterSpacing: -0.3,
@@ -77,16 +121,32 @@ class AppTheme {
           fontWeight: FontWeight.w800,
           color: scheme.onSurface,
         ),
+        titleMedium: base.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
+        bodyMedium: base.textTheme.bodyMedium?.copyWith(
+          color: scheme.onSurface,
+          height: 1.45,
+        ),
         bodyLarge: base.textTheme.bodyLarge?.copyWith(
           color: scheme.onSurfaceVariant,
           height: 1.45,
+        ),
+        bodySmall: base.textTheme.bodySmall?.copyWith(
+          color: scheme.onSurfaceVariant,
+          height: 1.4,
+        ),
+        labelLarge: base.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(double.infinity, AppTokens.buttonHeight),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+            borderRadius: BorderRadius.circular(AppTokens.radiusLg),
           ),
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           backgroundColor: scheme.primary,
@@ -99,7 +159,7 @@ class AppTheme {
               const Size(double.infinity, AppTokens.socialButtonHeight),
           side: BorderSide(color: scheme.outline),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+            borderRadius: BorderRadius.circular(AppTokens.radiusLg),
           ),
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           foregroundColor: scheme.onSurface,

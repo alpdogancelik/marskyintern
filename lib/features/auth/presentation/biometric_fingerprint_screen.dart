@@ -8,11 +8,12 @@ class BiometricFingerprintScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const BiometricPromptScreen(
-      title: 'Enable Fingerprint',
+      title: 'Fingerprint',
       subtitle:
-          'Protect your account with a fast and secure fingerprint check.',
-      primaryLabel: 'Enable Fingerprint',
+          'Unlock GoCrypto with your fingerprint for quick and secure access.',
+      primaryLabel: 'Setup Fingerprint',
       icon: Icons.fingerprint,
+      primaryRoute: '/app/home',
     );
   }
 }

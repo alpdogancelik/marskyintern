@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../coins/data/coins_repository_impl.dart';
+import '../../coins/data/repositories.dart';
 import '../../coins/domain/coins_repository.dart';
 import '../../coins/domain/entities/coin.dart';
 import '../data/repositories.dart';

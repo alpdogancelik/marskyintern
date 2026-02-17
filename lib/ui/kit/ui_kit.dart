@@ -1,6 +1,7 @@
 export 'app_buttons.dart';
 export 'app_chip.dart';
 export 'app_card.dart';
+export 'coin_row.dart';
 export 'app_divider.dart';
 export 'app_scaffold.dart';
 export 'app_top_bar.dart';
@@ -8,5 +9,9 @@ export 'auth_scaffold.dart';
 export 'auth_text_field.dart';
 export 'coin_avatar.dart';
 export 'inline_error_text.dart';
+export 'search_field.dart';
+export 'section_header.dart';
+export 'setting_tile.dart';
 export 'social_button.dart';
+export 'stat_card.dart';
 export 'trend_chip.dart';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/env/env.dart';
 import '../../../core/widgets/app_icon.dart';
 import '../../../ui/kit/ui_kit.dart';
 import '../../../ui/theme/app_tokens.dart';
@@ -41,6 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _submitted ? _validatePassword(_passwordController.text) : null;
     final isFormValid = _validateEmail(_emailController.text) == null &&
         _validatePassword(_passwordController.text) == null;
+    final showStubSocialActions = Env.enableDevStubFlows;
 
     return AuthScaffold(
       child: AutofillGroup(
@@ -138,20 +140,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               semanticLabel: 'Sign in to account',
             ),
             const SizedBox(height: AppTokens.space5),
-            const AuthDividerText(text: 'Or sign in with'),
-            const SizedBox(height: AppTokens.space5),
-            SocialButton(
-              label: 'Continue with Apple',
-              icon: const Icon(Icons.apple, size: 20),
-              onPressed: () => _comingSoon(context),
-            ),
-            const SizedBox(height: AppTokens.space3),
-            SocialButton(
-              label: 'Continue with Google',
-              icon: const GoogleGlyph(),
-              onPressed: () => _comingSoon(context),
-            ),
-            const SizedBox(height: AppTokens.space6),
+            if (showStubSocialActions) ...[
+              const AuthDividerText(text: 'Or sign in with'),
+              const SizedBox(height: AppTokens.space5),
+              SocialButton(
+                label: 'Continue with Apple',
+                icon: const Icon(Icons.apple, size: 20),
+                onPressed: () => _showMessage('Coming soon'),
+              ),
+              const SizedBox(height: AppTokens.space3),
+              SocialButton(
+                label: 'Continue with Google',
+                icon: const GoogleGlyph(),
+                onPressed: () => _showMessage('Coming soon'),
+              ),
+              const SizedBox(height: AppTokens.space6),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -232,10 +236,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return 'Password is required.';
     }
     return null;
-  }
-
-  void _comingSoon(BuildContext context) {
-    _showMessage('Coming soon');
   }
 
   void _showMessage(String message) {

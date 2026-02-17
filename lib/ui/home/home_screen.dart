@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,10 +13,6 @@ import '../../features/coins/presentation/home_controller.dart';
 import '../../features/favorites/presentation/favorites_controller.dart';
 import '../kit/ui_kit.dart';
 import '../theme/app_tokens.dart';
-import 'widgets/coin_market_row.dart';
-import 'widgets/quick_actions.dart';
-import 'widgets/summary_card.dart';
-import 'widgets/watchlist_strip.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -43,7 +41,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ref.listen(favoritesControllerProvider, (previous, next) {
       next.whenOrNull(
-          error: (error, _) => showAppErrorSnackBar(context, error));
+        error: (error, _) => showAppErrorSnackBar(context, error),
+      );
     });
 
     final homeState = ref.watch(homeControllerProvider);
@@ -53,42 +52,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: homeState.when(
           loading: () => _HomeLoadingSkeleton(
-            onTapLogout: _confirmLogout,
-            onTapQuickAction: _handleQuickAction,
-            onTapStocks: _openStocks,
-            onTapMessages: _openMessages,
+            onTapSearch: _openMarket,
             onTapNotifications: _openNotifications,
-            onTapAccount: _openAccount,
+            onTapLogout: _confirmLogout,
           ),
           error: (error, _) => _HomeErrorState(
             error: error,
-            onRetry: () =>
-                ref.read(homeControllerProvider.notifier).loadFirstPage(),
-            onTapLogout: _confirmLogout,
-            onTapStocks: _openStocks,
-            onTapMessages: _openMessages,
+            onRetry: _refresh,
+            onTapSearch: _openMarket,
             onTapNotifications: _openNotifications,
-            onTapAccount: _openAccount,
+            onTapLogout: _confirmLogout,
           ),
           data: (value) => _HomeContent(
             data: value,
-            onTapLogout: _confirmLogout,
-            onTapStocks: _openStocks,
-            onTapMessages: _openMessages,
+            onRefresh: _refresh,
+            onTapSearch: _openMarket,
             onTapNotifications: _openNotifications,
-            onTapAccount: _openAccount,
-            onOpenSort: _openSortSheet,
-            onOpenFilter: _openFilterSheet,
-            onToggleDirection: _toggleSortDirection,
-            onTapQuickAction: _handleQuickAction,
+            onTapLogout: _confirmLogout,
             onOpenCoin: _openCoin,
             onToggleFavorite: _toggleFavorite,
+            onDeposit: () => context.push('/wallet/topup'),
+            onWithdraw: () => context.push('/wallet/withdraw'),
             onLoadMore: _loadMoreIfNeeded,
             onForceLoadMore: _forceLoadMore,
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _refresh() {
+    return ref.read(homeControllerProvider.notifier).refresh();
   }
 
   Future<void> _confirmLogout() async {
@@ -120,50 +114,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
       showAppErrorSnackBar(context, error);
     }
-  }
-
-  Future<void> _openSortSheet(HomePagingState data) async {
-    final result = await showModalBottomSheet<_SortSheetResult>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _SortSheet(
-        initialOrderBy: data.orderBy,
-        initialAscending: data.isAscending,
-      ),
-    );
-
-    if (!mounted || result == null) {
-      return;
-    }
-
-    await ref.read(homeControllerProvider.notifier).updateSort(
-          orderBy: result.orderBy,
-          isAscending: result.isAscending,
-        );
-  }
-
-  Future<void> _openFilterSheet(HomePagingState data) async {
-    final selected = await showModalBottomSheet<MarketFilter>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _FilterSheet(initialFilter: data.marketFilter),
-    );
-
-    if (!mounted || selected == null) {
-      return;
-    }
-
-    ref.read(homeControllerProvider.notifier).setMarketFilter(selected);
-  }
-
-  Future<void> _toggleSortDirection(HomePagingState data) async {
-    await ref
-        .read(homeControllerProvider.notifier)
-        .setSortDirection(!data.isAscending);
   }
 
   Future<void> _toggleFavorite(String uuid) async {
@@ -202,76 +152,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await ref.read(homeControllerProvider.notifier).loadNextPageIfNeeded();
   }
 
-  void _handleQuickAction(String action) {
-    final normalized = action.toLowerCase();
-    if (normalized == 'buy') {
-      context.push('/order/crypto?symbol=BTC');
-      return;
-    }
-    if (normalized == 'wallet') {
-      context.push('/wallet');
-      return;
-    }
-    if (normalized == 'portfolio') {
-      context.push('/portfolio');
-      return;
-    }
-    if (normalized == 'history') {
-      context.push('/activity');
-      return;
-    }
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$action coming soon')));
-  }
-
-  void _openStocks() {
-    context.push('/stocks');
-  }
-
-  void _openMessages() {
-    context.push('/messages');
+  void _openMarket() {
+    context.push('/market');
   }
 
   void _openNotifications() {
     context.push('/notifications');
-  }
-
-  void _openAccount() {
-    context.push('/account');
   }
 }
 
 class _HomeContent extends StatelessWidget {
   const _HomeContent({
     required this.data,
-    required this.onTapLogout,
-    required this.onTapStocks,
-    required this.onTapMessages,
+    required this.onRefresh,
+    required this.onTapSearch,
     required this.onTapNotifications,
-    required this.onTapAccount,
-    required this.onOpenSort,
-    required this.onOpenFilter,
-    required this.onToggleDirection,
-    required this.onTapQuickAction,
+    required this.onTapLogout,
     required this.onOpenCoin,
     required this.onToggleFavorite,
+    required this.onDeposit,
+    required this.onWithdraw,
     required this.onLoadMore,
     required this.onForceLoadMore,
   });
 
   final HomePagingState data;
-  final Future<void> Function() onTapLogout;
-  final VoidCallback onTapStocks;
-  final VoidCallback onTapMessages;
+  final Future<void> Function() onRefresh;
+  final VoidCallback onTapSearch;
   final VoidCallback onTapNotifications;
-  final VoidCallback onTapAccount;
-  final Future<void> Function(HomePagingState data) onOpenSort;
-  final Future<void> Function(HomePagingState data) onOpenFilter;
-  final Future<void> Function(HomePagingState data) onToggleDirection;
-  final ValueChanged<String> onTapQuickAction;
+  final Future<void> Function() onTapLogout;
   final ValueChanged<Coin> onOpenCoin;
   final ValueChanged<String> onToggleFavorite;
+  final VoidCallback onDeposit;
+  final VoidCallback onWithdraw;
   final Future<void> Function({
     required HomePagingState data,
     required int index,
@@ -281,197 +194,335 @@ class _HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleCoins = _applyFilter(data.items, data.marketFilter);
-    final watchlistCoins = data.items
+    final favoriteCoins = data.items
         .where((coin) => data.favoriteIds.contains(coin.uuid))
+        .take(4)
         .toList(growable: false);
 
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            AppTokens.pageHorizontalPadding,
-            AppTokens.space3,
-            AppTokens.pageHorizontalPadding,
-            AppTokens.space4,
-          ),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppTopBar(
-                  leading: const _HomeBrandMark(),
-                  title: 'Home',
-                  trailing: _HomeActions(
-                    onTapLogout: onTapLogout,
-                    onTapStocks: onTapStocks,
-                    onTapMessages: onTapMessages,
-                    onTapNotifications: onTapNotifications,
-                    onTapAccount: onTapAccount,
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.pageHorizontalPadding,
+              AppTokens.space3,
+              AppTokens.pageHorizontalPadding,
+              AppTokens.space4,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppTopBar(
+                    leading: const _HomeBrandMark(),
+                    title: 'GoCrypto',
+                    trailing: _HomeActions(
+                      onTapSearch: onTapSearch,
+                      onTapNotifications: onTapNotifications,
+                      onTapLogout: onTapLogout,
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppTokens.space5),
-                SummaryCard(
-                  totalValueText: '\$56,890.00',
-                  todayChange: 2.30,
-                  onActionTap: () => onTapQuickAction('Scan QR'),
-                  onCardTap: () => context.push('/wallet'),
-                ),
-                const SizedBox(height: AppTokens.space5),
-                QuickActions(onActionTap: onTapQuickAction),
-                const SizedBox(height: AppTokens.space6),
-                WatchlistStrip(
-                  coins: watchlistCoins,
-                  onTapCoin: onOpenCoin,
-                  onSeeAll: () => context.go('/app/favorites'),
-                ),
-                const SizedBox(height: AppTokens.space6),
-                Row(
-                  children: [
-                    Text(
-                      'Market',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () => context.go('/app/favorites'),
-                      child: const Text('See all'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppTokens.space2),
-                Wrap(
-                  spacing: AppTokens.space2,
-                  runSpacing: AppTokens.space2,
-                  children: [
-                    AppChip(
-                      label: _sortLabel(data.orderBy),
-                      leading: const Icon(Icons.sort_rounded, size: 18),
-                      onTap: () => onOpenSort(data),
-                    ),
-                    AppChip(
-                      label: _filterLabel(data.marketFilter),
-                      leading: const Icon(Icons.filter_alt_outlined, size: 18),
-                      onTap: () => onOpenFilter(data),
-                      isActive: data.marketFilter != MarketFilter.all,
-                    ),
-                    AppChip(
-                      label: data.isAscending ? 'Asc' : 'Desc',
-                      leading: Icon(
-                        data.isAscending
-                            ? Icons.south_rounded
-                            : Icons.north_rounded,
-                        size: 18,
-                      ),
-                      onTap: () => onToggleDirection(data),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppTokens.space3),
-              ],
+                  const SizedBox(height: AppTokens.sectionGapMd),
+                  _PortfolioCard(
+                    total: _estimatedPortfolioValue(data.items),
+                    onDeposit: onDeposit,
+                    onWithdraw: onWithdraw,
+                  ),
+                  const SizedBox(height: AppTokens.sectionGapLg),
+                  SectionHeader(
+                    title: 'Favorites',
+                    actionLabel: 'See all',
+                    onActionTap: () => context.go('/app/favorites'),
+                  ),
+                  const SizedBox(height: AppTokens.space2),
+                  _FavoritesMiniRow(
+                    coins: favoriteCoins,
+                    onTapCoin: onOpenCoin,
+                  ),
+                  const SizedBox(height: AppTokens.sectionGapLg),
+                  SectionHeader(
+                    title: 'Live Prices',
+                    actionLabel: 'Market',
+                    onActionTap: onTapSearch,
+                  ),
+                  const SizedBox(height: AppTokens.space2),
+                ],
+              ),
             ),
           ),
-        ),
-        if (visibleCoins.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Padding(
-              padding: const EdgeInsets.all(AppTokens.space6),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'No coins found for this filter.',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    if (data.hasMore) ...[
+          if (data.items.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.all(AppTokens.space6),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'No coins available right now.',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
                       const SizedBox(height: AppTokens.space3),
                       PrimaryButton(
-                        label: data.isLoadingMore ? 'Loading...' : 'Load more',
-                        onPressed: data.isLoadingMore
-                            ? null
-                            : () => onForceLoadMore(data),
-                        isLoading: data.isLoadingMore,
+                        label: 'Retry',
+                        onPressed: onRefresh,
                       ),
                     ],
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTokens.pageHorizontalPadding,
+                0,
+                AppTokens.pageHorizontalPadding,
+                AppTokens.space6,
+              ),
+              sliver: SliverList.separated(
+                itemCount: data.items.length + (data.isLoadingMore ? 1 : 0),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppTokens.space3),
+                itemBuilder: (context, index) {
+                  if (index >= data.items.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: AppTokens.space4),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  if (index >= data.items.length - 1) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      onLoadMore(
+                        data: data,
+                        index: index,
+                        listLength: data.items.length,
+                      );
+                    });
+                  }
+
+                  final coin = data.items[index];
+                  return CoinRow(
+                    name: coin.name,
+                    symbol: coin.symbol,
+                    priceText: _formatCurrency(coin.price),
+                    changePercent: coin.change,
+                    sparkline: _buildSparkline(coin),
+                    onTap: () => onOpenCoin(coin),
+                    trailing: IconButton(
+                      tooltip: data.favoriteIds.contains(coin.uuid)
+                          ? 'Remove from favorites'
+                          : 'Add to favorites',
+                      onPressed: () => onToggleFavorite(coin.uuid),
+                      icon: Icon(
+                        data.favoriteIds.contains(coin.uuid)
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        color: data.favoriteIds.contains(coin.uuid)
+                            ? const Color(0xFFFFB545)
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          if (!data.isLoadingMore && data.hasMore)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTokens.pageHorizontalPadding,
+                  0,
+                  AppTokens.pageHorizontalPadding,
+                  AppTokens.space6,
+                ),
+                child: SecondaryButton(
+                  label: 'Load More',
+                  onPressed: () => onForceLoadMore(data),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  double _estimatedPortfolioValue(List<Coin> coins) {
+    if (coins.isEmpty) {
+      return 0;
+    }
+    return coins.take(4).fold<double>(0, (sum, coin) => sum + coin.price);
+  }
+}
+
+class _PortfolioCard extends StatelessWidget {
+  const _PortfolioCard({
+    required this.total,
+    required this.onDeposit,
+    required this.onWithdraw,
+  });
+
+  final double total;
+  final VoidCallback onDeposit;
+  final VoidCallback onWithdraw;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return AppCard(
+      padding: const EdgeInsets.all(AppTokens.space4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'My Portfolio',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const Spacer(),
+              Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 18,
+                color: colors.onSurfaceVariant,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTokens.space2),
+          Text(
+            _formatCurrency(total),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: AppTokens.space4),
+          Row(
+            children: [
+              Expanded(
+                child: SecondaryButton(
+                  label: 'Deposit',
+                  leading: const Icon(Icons.south_west_rounded, size: 18),
+                  onPressed: onDeposit,
+                ),
+              ),
+              const SizedBox(width: AppTokens.space3),
+              Expanded(
+                child: SecondaryButton(
+                  label: 'Withdraw',
+                  leading: const Icon(Icons.north_east_rounded, size: 18),
+                  onPressed: onWithdraw,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FavoritesMiniRow extends StatelessWidget {
+  const _FavoritesMiniRow({
+    required this.coins,
+    required this.onTapCoin,
+  });
+
+  final List<Coin> coins;
+  final ValueChanged<Coin> onTapCoin;
+
+  @override
+  Widget build(BuildContext context) {
+    if (coins.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppTokens.space4),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        child: Text(
+          'No favorites yet. Tap the star on a coin to add it.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 132,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: coins.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AppTokens.space3),
+        itemBuilder: (context, index) {
+          final coin = coins[index];
+          final isPositive = coin.change >= 0;
+          return InkWell(
+            onTap: () => onTapCoin(coin),
+            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            child: SizedBox(
+              width: 156,
+              child: AppCard(
+                padding: const EdgeInsets.all(AppTokens.space3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CoinAvatar(
+                          symbol: coin.symbol,
+                          size: 24,
+                          semanticLabel: '${coin.symbol} icon',
+                        ),
+                        const SizedBox(width: AppTokens.space2),
+                        Expanded(
+                          child: Text(
+                            coin.symbol,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppTokens.space2),
+                    SizedBox(
+                      height: 28,
+                      child: CustomPaint(
+                        painter: _MiniSparklinePainter(
+                          points: _buildSparkline(coin, points: 16),
+                          color:
+                              isPositive ? AppTokens.success : AppTokens.danger,
+                        ),
+                        size: const Size(double.infinity, 28),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _formatCurrency(coin.price),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                   ],
                 ),
               ),
             ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.pageHorizontalPadding,
-              0,
-              AppTokens.pageHorizontalPadding,
-              AppTokens.space6,
-            ),
-            sliver: SliverList.separated(
-              itemCount: visibleCoins.length + (data.isLoadingMore ? 1 : 0),
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: AppTokens.space3),
-              itemBuilder: (context, index) {
-                if (index >= visibleCoins.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: AppTokens.space4),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                if (index >= visibleCoins.length - 1) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    onLoadMore(
-                      data: data,
-                      index: index,
-                      listLength: visibleCoins.length,
-                    );
-                  });
-                }
-
-                final coin = visibleCoins[index];
-                return CoinMarketRow(
-                  coin: coin,
-                  isFavorite: data.favoriteIds.contains(coin.uuid),
-                  onTap: () => onOpenCoin(coin),
-                  onToggleFavorite: () => onToggleFavorite(coin.uuid),
-                );
-              },
-            ),
-          ),
-      ],
+          );
+        },
+      ),
     );
-  }
-
-  List<Coin> _applyFilter(List<Coin> coins, MarketFilter filter) {
-    return switch (filter) {
-      MarketFilter.all => coins,
-      MarketFilter.gainers => coins.where((coin) => coin.change > 0).toList(),
-      MarketFilter.losers => coins.where((coin) => coin.change < 0).toList(),
-    };
-  }
-
-  static String _sortLabel(String orderBy) {
-    return switch (orderBy) {
-      'marketCap' => 'Market Cap',
-      'price' => 'Price',
-      '24hVolume' => '24h Volume',
-      'change' => 'Change',
-      'listedAt' => 'Listed At',
-      _ => 'Sort',
-    };
-  }
-
-  static String _filterLabel(MarketFilter filter) {
-    return switch (filter) {
-      MarketFilter.all => 'All',
-      MarketFilter.gainers => 'Gainers',
-      MarketFilter.losers => 'Losers',
-    };
   }
 }
 
@@ -502,18 +553,14 @@ class _HomeBrandMark extends StatelessWidget {
 
 class _HomeActions extends StatelessWidget {
   const _HomeActions({
-    required this.onTapLogout,
-    required this.onTapStocks,
-    required this.onTapMessages,
+    required this.onTapSearch,
     required this.onTapNotifications,
-    required this.onTapAccount,
+    required this.onTapLogout,
   });
 
-  final Future<void> Function() onTapLogout;
-  final VoidCallback onTapStocks;
-  final VoidCallback onTapMessages;
+  final VoidCallback onTapSearch;
   final VoidCallback onTapNotifications;
-  final VoidCallback onTapAccount;
+  final Future<void> Function() onTapLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -522,9 +569,9 @@ class _HomeActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          onPressed: onTapMessages,
-          icon: const Icon(Icons.chat_bubble_outline_rounded),
-          tooltip: 'Messages',
+          onPressed: onTapSearch,
+          icon: const Icon(Icons.search_rounded),
+          tooltip: 'Search market',
           style: IconButton.styleFrom(
             backgroundColor: colors.surface,
             minimumSize: const Size(44, 44),
@@ -536,28 +583,6 @@ class _HomeActions extends StatelessWidget {
           onPressed: onTapNotifications,
           icon: const Icon(Icons.notifications_none_rounded),
           tooltip: 'Notifications',
-          style: IconButton.styleFrom(
-            backgroundColor: colors.surface,
-            minimumSize: const Size(44, 44),
-            side: BorderSide(color: colors.outlineVariant),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          onPressed: onTapStocks,
-          icon: const Icon(Icons.candlestick_chart_rounded),
-          tooltip: 'Stocks (Beta)',
-          style: IconButton.styleFrom(
-            backgroundColor: colors.surface,
-            minimumSize: const Size(44, 44),
-            side: BorderSide(color: colors.outlineVariant),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          onPressed: onTapAccount,
-          icon: const Icon(Icons.person_outline_rounded),
-          tooltip: 'Account & Setting',
           style: IconButton.styleFrom(
             backgroundColor: colors.surface,
             minimumSize: const Size(44, 44),
@@ -582,20 +607,14 @@ class _HomeActions extends StatelessWidget {
 
 class _HomeLoadingSkeleton extends StatelessWidget {
   const _HomeLoadingSkeleton({
-    required this.onTapLogout,
-    required this.onTapQuickAction,
-    required this.onTapStocks,
-    required this.onTapMessages,
+    required this.onTapSearch,
     required this.onTapNotifications,
-    required this.onTapAccount,
+    required this.onTapLogout,
   });
 
-  final Future<void> Function() onTapLogout;
-  final ValueChanged<String> onTapQuickAction;
-  final VoidCallback onTapStocks;
-  final VoidCallback onTapMessages;
+  final VoidCallback onTapSearch;
   final VoidCallback onTapNotifications;
-  final VoidCallback onTapAccount;
+  final Future<void> Function() onTapLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -616,37 +635,24 @@ class _HomeLoadingSkeleton extends StatelessWidget {
               children: [
                 AppTopBar(
                   leading: const _HomeBrandMark(),
-                  title: 'Home',
+                  title: 'GoCrypto',
                   trailing: _HomeActions(
-                    onTapLogout: onTapLogout,
-                    onTapStocks: onTapStocks,
-                    onTapMessages: onTapMessages,
+                    onTapSearch: onTapSearch,
                     onTapNotifications: onTapNotifications,
-                    onTapAccount: onTapAccount,
+                    onTapLogout: onTapLogout,
                   ),
                 ),
                 const SizedBox(height: AppTokens.space5),
                 Container(
-                  height: 188,
+                  height: 146,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppTokens.radiusXl),
                     color: skeletonColor,
                   ),
                 ),
                 const SizedBox(height: AppTokens.space5),
-                QuickActions(onActionTap: onTapQuickAction),
-                const SizedBox(height: AppTokens.space6),
                 Container(
-                  height: 18,
-                  width: 120,
-                  decoration: BoxDecoration(
-                    color: skeletonColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                const SizedBox(height: AppTokens.space3),
-                Container(
-                  height: 120,
+                  height: 130,
                   decoration: BoxDecoration(
                     color: skeletonColor,
                     borderRadius: BorderRadius.circular(AppTokens.radiusLg),
@@ -679,20 +685,16 @@ class _HomeErrorState extends StatelessWidget {
   const _HomeErrorState({
     required this.error,
     required this.onRetry,
-    required this.onTapLogout,
-    required this.onTapStocks,
-    required this.onTapMessages,
+    required this.onTapSearch,
     required this.onTapNotifications,
-    required this.onTapAccount,
+    required this.onTapLogout,
   });
 
   final Object error;
-  final VoidCallback onRetry;
-  final Future<void> Function() onTapLogout;
-  final VoidCallback onTapStocks;
-  final VoidCallback onTapMessages;
+  final Future<void> Function() onRetry;
+  final VoidCallback onTapSearch;
   final VoidCallback onTapNotifications;
-  final VoidCallback onTapAccount;
+  final Future<void> Function() onTapLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -703,25 +705,15 @@ class _HomeErrorState extends StatelessWidget {
         children: [
           AppTopBar(
             leading: const _HomeBrandMark(),
-            title: 'Home',
+            title: 'GoCrypto',
             trailing: _HomeActions(
-              onTapLogout: onTapLogout,
-              onTapStocks: onTapStocks,
-              onTapMessages: onTapMessages,
+              onTapSearch: onTapSearch,
               onTapNotifications: onTapNotifications,
-              onTapAccount: onTapAccount,
+              onTapLogout: onTapLogout,
             ),
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.all(AppTokens.space5),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(AppTokens.radiusLg),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-            ),
+          AppCard(
             child: Column(
               children: [
                 Text(
@@ -744,239 +736,70 @@ class _HomeErrorState extends StatelessWidget {
   }
 }
 
-class _SortSheetResult {
-  const _SortSheetResult({
-    required this.orderBy,
-    required this.isAscending,
+class _MiniSparklinePainter extends CustomPainter {
+  _MiniSparklinePainter({
+    required this.points,
+    required this.color,
   });
 
-  final String orderBy;
-  final bool isAscending;
-}
-
-class _SortSheet extends StatefulWidget {
-  const _SortSheet({
-    required this.initialOrderBy,
-    required this.initialAscending,
-  });
-
-  final String initialOrderBy;
-  final bool initialAscending;
+  final List<double> points;
+  final Color color;
 
   @override
-  State<_SortSheet> createState() => _SortSheetState();
-}
+  void paint(Canvas canvas, Size size) {
+    if (points.length < 2) {
+      return;
+    }
 
-class _SortSheetState extends State<_SortSheet> {
-  late String _orderBy = widget.initialOrderBy;
-  late bool _isAscending = widget.initialAscending;
+    final min = points.reduce(math.min);
+    final max = points.reduce(math.max);
+    final range = (max - min).abs() < 0.0001 ? 1.0 : (max - min);
 
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.62,
-      minChildSize: 0.42,
-      maxChildSize: 0.9,
-      builder: (context, controller) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(height: AppTokens.space4),
-              Text(
-                'Sort Market',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: AppTokens.space2),
-              Expanded(
-                child: ListView(
-                  controller: controller,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppTokens.space4),
-                  children: [
-                    RadioGroup<String>(
-                      groupValue: _orderBy,
-                      onChanged: (value) =>
-                          setState(() => _orderBy = value ?? _orderBy),
-                      child: Column(
-                        children: sortOrderByOptions
-                            .map(
-                              (option) => RadioListTile<String>(
-                                value: option,
-                                title: Text(_labelForSort(option)),
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.space3),
-                    SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(
-                          value: false,
-                          label: Text('Desc'),
-                          icon: Icon(Icons.north_rounded, size: 18),
-                        ),
-                        ButtonSegment(
-                          value: true,
-                          label: Text('Asc'),
-                          icon: Icon(Icons.south_rounded, size: 18),
-                        ),
-                      ],
-                      selected: {_isAscending},
-                      onSelectionChanged: (value) =>
-                          setState(() => _isAscending = value.first),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppTokens.space4,
-                  AppTokens.space3,
-                  AppTokens.space4,
-                  AppTokens.space3 + bottomInset,
-                ),
-                child: PrimaryButton(
-                  label: 'Apply',
-                  onPressed: () => Navigator.of(context).pop(
-                    _SortSheetResult(
-                        orderBy: _orderBy, isAscending: _isAscending),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    final path = Path();
+    for (var i = 0; i < points.length; i++) {
+      final x = (i / (points.length - 1)) * size.width;
+      final normalized = (points[i] - min) / range;
+      final y = size.height - (normalized * size.height);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(path, stroke);
   }
 
-  String _labelForSort(String orderBy) {
-    return switch (orderBy) {
-      'price' => 'Price',
-      'marketCap' => 'Market Cap',
-      '24hVolume' => '24h Volume',
-      'change' => 'Change',
-      'listedAt' => 'Listed At',
-      _ => orderBy,
-    };
+  @override
+  bool shouldRepaint(covariant _MiniSparklinePainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.points != points;
   }
 }
 
-class _FilterSheet extends StatefulWidget {
-  const _FilterSheet({
-    required this.initialFilter,
+List<double> _buildSparkline(Coin coin, {int points = 12}) {
+  final base = coin.price <= 0 ? 1.0 : coin.price;
+  final vol = (coin.change.abs() / 100).clamp(0.02, 0.18);
+  final trend = coin.change / 100;
+  final phase = (coin.rank % 7) * 0.55;
+
+  return List<double>.generate(points, (index) {
+    final t = index / (points - 1);
+    final wave = math.sin((t * 2 * math.pi) + phase) * vol;
+    final slope = (t - 0.5) * trend * 0.8;
+    final factor = (1 + wave + slope).clamp(0.2, 2.5);
+    return base * factor;
   });
-
-  final MarketFilter initialFilter;
-
-  @override
-  State<_FilterSheet> createState() => _FilterSheetState();
 }
 
-class _FilterSheetState extends State<_FilterSheet> {
-  late MarketFilter _filter = widget.initialFilter;
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.44,
-      minChildSize: 0.34,
-      maxChildSize: 0.7,
-      builder: (context, controller) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(height: AppTokens.space4),
-              Text(
-                'Filter Market',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: AppTokens.space2),
-              Expanded(
-                child: ListView(
-                  controller: controller,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppTokens.space4),
-                  children: [
-                    RadioGroup<MarketFilter>(
-                      groupValue: _filter,
-                      onChanged: (value) =>
-                          setState(() => _filter = value ?? _filter),
-                      child: const Column(
-                        children: [
-                          RadioListTile<MarketFilter>(
-                            value: MarketFilter.all,
-                            title: Text('All'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          RadioListTile<MarketFilter>(
-                            value: MarketFilter.gainers,
-                            title: Text('Gainers'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          RadioListTile<MarketFilter>(
-                            value: MarketFilter.losers,
-                            title: Text('Losers'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppTokens.space4,
-                  AppTokens.space3,
-                  AppTokens.space4,
-                  AppTokens.space3 + bottomInset,
-                ),
-                child: PrimaryButton(
-                  label: 'Apply',
-                  onPressed: () => Navigator.of(context).pop(_filter),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+String _formatCurrency(double value) {
+  final abs = value.abs();
+  final decimals = abs >= 1000 ? 0 : 2;
+  return '\$${value.toStringAsFixed(decimals)}';
 }

@@ -11,6 +11,7 @@ class BiometricPromptScreen extends StatelessWidget {
     required this.subtitle,
     required this.primaryLabel,
     required this.icon,
+    required this.primaryRoute,
     this.skipRoute = '/app/home',
   });
 
@@ -18,6 +19,7 @@ class BiometricPromptScreen extends StatelessWidget {
   final String subtitle;
   final String primaryLabel;
   final IconData icon;
+  final String primaryRoute;
   final String skipRoute;
 
   @override
@@ -27,16 +29,29 @@ class BiometricPromptScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: AppTokens.space10),
+          const SizedBox(height: AppTokens.space8),
           Center(
-            child: Container(
-              width: 92,
-              height: 92,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: colors.primary.withValues(alpha: 0.1),
-              ),
-              child: Icon(icon, size: 40, color: colors.primary),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 168,
+                  height: 168,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: colors.primary.withValues(alpha: 0.06),
+                  ),
+                ),
+                Container(
+                  width: 118,
+                  height: 118,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: colors.primary.withValues(alpha: 0.12),
+                  ),
+                ),
+                Icon(icon, size: 56, color: colors.primary),
+              ],
             ),
           ),
           const SizedBox(height: AppTokens.space6),
@@ -56,7 +71,7 @@ class BiometricPromptScreen extends StatelessWidget {
           const SizedBox(height: AppTokens.space10),
           PrimaryButton(
             label: primaryLabel,
-            onPressed: () => _showComingSoon(context),
+            onPressed: () => context.go(primaryRoute),
           ),
           const SizedBox(height: AppTokens.space2),
           TextButton(
@@ -66,11 +81,5 @@ class BiometricPromptScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Coming soon')));
   }
 }

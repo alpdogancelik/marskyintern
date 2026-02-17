@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/errors/exception_mapper.dart';
 import '../../favorites/presentation/favorites_controller.dart';
 import '../data/auth_repository.dart';
+import '../domain/auth_state.dart' as domain;
 import '../domain/entities/auth_action_result.dart';
 import '../domain/entities/auth_view_state.dart';
 
@@ -14,20 +14,19 @@ final authControllerProvider = NotifierProvider<AuthController, AuthViewState>(
 );
 
 class AuthController extends Notifier<AuthViewState> {
-  StreamSubscription<AuthState>? _subscription;
+  StreamSubscription<domain.AuthState>? _subscription;
 
   @override
   AuthViewState build() {
     final repository = ref.watch(authRepositoryProvider);
     _subscription?.cancel();
-    _subscription = repository.sessionStream.listen(_handleAuthChange);
+    _subscription = repository.authStateChanges().listen(_handleAuthChange);
     ref.onDispose(() => _subscription?.cancel());
 
-    final user = repository.currentUser;
-    if (user == null) {
+    if (!repository.currentAuthState.isAuthenticated) {
       return AuthViewState.unauthenticated();
     }
-    return AuthViewState.authenticated(user);
+    return AuthViewState.authenticated(repository.currentUser);
   }
 
   Future<AuthActionResult> signInWithEmailPassword({
@@ -104,6 +103,45 @@ class AuthController extends Notifier<AuthViewState> {
     }
   }
 
+  Future<AuthActionResult> verifySignupOtp({
+    required String email,
+    required String token,
+  }) async {
+    state = AuthViewState.authenticating(user: state.user);
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final response = await repository.verifySignupOtp(
+        email: email,
+        token: token,
+      );
+      final user = response.user ?? repository.currentUser;
+      if (user == null) {
+        const message = 'Verification failed. Please try again.';
+        state = AuthViewState.error(message: message);
+        return AuthActionResult.failure(message);
+      }
+
+      state = AuthViewState.authenticated(user);
+      return AuthActionResult.success();
+    } catch (error) {
+      final message = ExceptionMapper.map(error).message;
+      state = AuthViewState.error(message: message, user: state.user);
+      return AuthActionResult.failure(message);
+    }
+  }
+
+  Future<AuthActionResult> resendSignupOtp({
+    required String email,
+  }) async {
+    try {
+      await ref.read(authRepositoryProvider).resendSignupOtp(email: email);
+      return AuthActionResult.success();
+    } catch (error) {
+      final message = ExceptionMapper.map(error).message;
+      return AuthActionResult.failure(message);
+    }
+  }
+
   Future<void> signOut() async {
     await ref.read(authRepositoryProvider).signOut();
     ref.read(favoritesControllerProvider.notifier).clearMemory();
@@ -117,10 +155,10 @@ class AuthController extends Notifier<AuthViewState> {
     state = state.copyWith(clearMessage: true);
   }
 
-  void _handleAuthChange(AuthState authState) {
-    final session = authState.session;
-    if (session?.user != null) {
-      state = AuthViewState.authenticated(session!.user);
+  void _handleAuthChange(domain.AuthState authState) {
+    if (authState.isAuthenticated) {
+      final user = ref.read(authRepositoryProvider).currentUser;
+      state = AuthViewState.authenticated(user);
       return;
     }
     state = AuthViewState.unauthenticated();

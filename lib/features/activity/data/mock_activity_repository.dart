@@ -1,14 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../coins/data/coins_repository_impl.dart';
 import '../../coins/domain/coins_repository.dart';
 import '../domain/activity_repository.dart';
 import '../domain/entities/activity_transaction.dart';
-
-final activityRepositoryProvider = Provider<ActivityRepository>((ref) {
-  final coinsRepository = ref.watch(coinsRepositoryProvider);
-  return MockActivityRepository(coinsRepository);
-});
 
 class MockActivityRepository implements ActivityRepository {
   MockActivityRepository(this._coinsRepository);
