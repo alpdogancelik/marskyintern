@@ -267,6 +267,10 @@ class HomeController extends StateNotifier<AsyncValue<HomePagingState>> {
     _realtimeSubscription = _realtimeRepository!.watchCoins().listen(
       (items) {
         final current = state.valueOrNull;
+        // Keep API fallback data visible when Supabase cache is still empty.
+        if (items.isEmpty && current != null && current.items.isNotEmpty) {
+          return;
+        }
         final orderBy = current?.orderBy ?? _defaultOrderBy;
         final isAscending = current?.isAscending ?? _defaultIsAscending;
         final direction = isAscending ? 'asc' : 'desc';

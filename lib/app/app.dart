@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +21,21 @@ class MarskyApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
+      builder: (context, child) {
+        final content = child ?? const SizedBox.shrink();
+        if (!kIsWeb) {
+          return content;
+        }
+        return ColoredBox(
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 430),
+              child: content,
+            ),
+          ),
+        );
+      },
     );
   }
 }

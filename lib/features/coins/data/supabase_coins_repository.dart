@@ -3,19 +3,29 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/errors/app_exception.dart';
 import '../../../core/supabase/supabase_config.dart';
+import 'coinranking_api.dart';
+import 'coins_remote_data_source.dart';
 import '../domain/coins_repository.dart';
 import '../domain/entities/coin.dart';
 
 final supabaseCoinsRepositoryProvider =
     Provider<SupabaseCoinsRepository>((ref) {
   final client = ref.watch(supabaseClientProvider);
-  return SupabaseCoinsRepository(client);
+  final remoteDataSource = ref.watch(coinsRemoteDataSourceProvider);
+  return SupabaseCoinsRepository(
+    client,
+    fallbackRemoteDataSource: remoteDataSource,
+  );
 });
 
 class SupabaseCoinsRepository implements CoinsRepository {
-  SupabaseCoinsRepository(this._client);
+  SupabaseCoinsRepository(
+    this._client, {
+    this.fallbackRemoteDataSource,
+  });
 
   final SupabaseClient _client;
+  final CoinsRemoteDataSource? fallbackRemoteDataSource;
 
   Stream<List<Coin>> watchCoins() {
     return _client
@@ -32,6 +42,15 @@ class SupabaseCoinsRepository implements CoinsRepository {
         .order('rank', ascending: true)
         .limit(200);
     final rows = _asRowList(response);
+    if (rows.isEmpty && fallbackRemoteDataSource != null) {
+      final fallback = await fallbackRemoteDataSource!.listCoins(
+        limit: 200,
+        offset: 0,
+        orderBy: CoinOrderBy.marketCap,
+        orderDirection: CoinOrderDirection.desc,
+      );
+      return fallback.map((dto) => dto.toEntity()).toList(growable: false);
+    }
     return rows.map(_mapCoinRow).toList(growable: false);
   }
 
@@ -50,6 +69,15 @@ class SupabaseCoinsRepository implements CoinsRepository {
         .order(column, ascending: ascending)
         .range(offset, offset + limit - 1);
     final rows = _asRowList(response);
+    if (rows.isEmpty && fallbackRemoteDataSource != null) {
+      final fallback = await fallbackRemoteDataSource!.listCoins(
+        limit: limit,
+        offset: offset,
+        orderBy: CoinOrderBy.fromValue(orderBy),
+        orderDirection: CoinOrderDirection.fromValue(orderDirection),
+      );
+      return fallback.map((dto) => dto.toEntity()).toList(growable: false);
+    }
     return rows.map(_mapCoinRow).toList(growable: false);
   }
 
@@ -59,6 +87,10 @@ class SupabaseCoinsRepository implements CoinsRepository {
         await _client.from('coins').select().eq('uuid', uuid).maybeSingle();
     final row = _asRow(response);
     if (row == null) {
+      if (fallbackRemoteDataSource != null) {
+        final dto = await fallbackRemoteDataSource!.getCoinByUuid(uuid);
+        return dto.toEntity();
+      }
       throw NotFoundException('Coin with uuid "$uuid" was not found.');
     }
     return _mapCoinRow(row);
