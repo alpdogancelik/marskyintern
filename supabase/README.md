@@ -1,19 +1,19 @@
 # Supabase Coin Cache Setup
 
+## English
 This folder contains schema and function scaffolding for a Supabase-backed coin cache that mirrors CoinRanking data.
 
-## 1) Apply migration
-
-Migration file:
+### 1) Apply migrations
+Migration files:
 - `supabase/migrations/0001_init.sql`
+- `supabase/migrations/20260217153000_create_coins_cache.sql`
 
-Apply via Supabase SQL editor or CLI:
-
+Run with SQL editor or CLI:
 ```bash
 supabase db push
 ```
 
-The migration creates:
+Creates:
 - `public.coins`
 - `public.coin_history`
 - `public.favorites`
@@ -22,58 +22,90 @@ The migration creates:
 
 RLS is enabled on all tables.
 
-## 2) Realtime for `coins`
-
-Enable realtime replication for the `coins` table:
-
+### 2) Realtime for `coins`
 ```sql
 alter publication supabase_realtime add table public.coins;
 ```
+Verify in Dashboard:
+- Database -> Replication -> Realtime -> `public.coins`
 
-You can verify in Supabase Dashboard:
-- Database -> Replication -> Realtime -> ensure `public.coins` is enabled.
-
-## 3) Edge Function (recommended)
-
-Function skeleton:
+### 3) Edge Function (recommended)
 - `supabase/functions/coinranking_sync/index.ts`
 
-Required server env vars (set in Supabase project settings / secrets):
+Required server env vars:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `COINRANKING_API_KEY`
 
-Important:
-- Do **not** commit keys to git.
-- Do **not** put service role keys in Flutter client code.
+Security:
+- Never commit keys to git.
+- Never use service role key in Flutter client code.
 
-Deploy function:
-
+Deploy:
 ```bash
 supabase functions deploy coinranking_sync
 ```
 
-## 4) Schedule sync (every 1-5 minutes)
+### 4) Schedule sync (1-5 min)
+Use Scheduled Functions to call `coinranking_sync` every 1-5 minutes.
 
-Use Supabase Scheduled Functions (Dashboard) or CLI to call `coinranking_sync` periodically.
+### 5) Flutter runtime switch
+- `USE_SUPABASE_COINS_CACHE=true`: read from Supabase + realtime
+- `USE_MOCK_COINS=true`: use mock coins
+- default: direct CoinRanking API
+- `USE_MOCK_AUTH=true`: Supabase init is skipped
 
-Recommended cadence:
-- every 1 minute for near-live dashboards
-- every 5 minutes for lower write volume
+## Turkce
+Bu klasor, CoinRanking verisini Supabase uzerinde cachelemek icin schema ve function iskeletini icerir.
 
-Example HTTP invocation body can be empty (`{}`).
+### 1) Migrationlari uygula
+Migration dosyalari:
+- `supabase/migrations/0001_init.sql`
+- `supabase/migrations/20260217153000_create_coins_cache.sql`
 
-## 5) Flutter runtime switch
-
-Use dart-define / env to enable Supabase cache mode:
-
-- `USE_SUPABASE_COINS_CACHE=true` -> reads coins from Supabase and listens to realtime updates.
-- `USE_MOCK_COINS=true` -> uses mock coins repository.
-- default -> CoinRanking direct API repository.
-- If `USE_MOCK_AUTH=true`, Supabase is not initialized by design; the app falls back to direct CoinRanking repository even when `USE_SUPABASE_COINS_CACHE=true`.
-
-Example:
-
+SQL Editor veya CLI ile calistir:
 ```bash
-flutter run --dart-define=USE_SUPABASE_COINS_CACHE=true
+supabase db push
 ```
+
+Olusan tablolar:
+- `public.coins`
+- `public.coin_history`
+- `public.favorites`
+- `public.portfolio_holdings`
+- `public.orders`
+
+Tum tablolarda RLS aciktir.
+
+### 2) `coins` icin Realtime
+```sql
+alter publication supabase_realtime add table public.coins;
+```
+Dashboard kontrolu:
+- Database -> Replication -> Realtime -> `public.coins`
+
+### 3) Edge Function (onerilen)
+- `supabase/functions/coinranking_sync/index.ts`
+
+Sunucu ortam degiskenleri:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `COINRANKING_API_KEY`
+
+Guvenlik:
+- Anahtarlari git'e commit etmeyin.
+- Service role key'i Flutter client'ta kullanmayin.
+
+Deploy:
+```bash
+supabase functions deploy coinranking_sync
+```
+
+### 4) Senkronizasyon zamanlama (1-5 dk)
+`coinranking_sync` fonksiyonunu 1-5 dakikada bir calistiracak sekilde schedule edin.
+
+### 5) Flutter runtime switch
+- `USE_SUPABASE_COINS_CACHE=true`: Supabase + realtime
+- `USE_MOCK_COINS=true`: mock coin verisi
+- varsayilan: dogrudan CoinRanking API
+- `USE_MOCK_AUTH=true`: Supabase init edilmez

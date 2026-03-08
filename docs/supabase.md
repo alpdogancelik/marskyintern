@@ -14,6 +14,7 @@ Set these in `.env` (project root):
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your-anon-or-publishable-key
 COINRANKING_API_KEY=your-coinranking-key
+AUTH_REDIRECT_URL=https://your-web-domain
 ```
 
 Notes:
@@ -22,6 +23,7 @@ Notes:
 - Do not commit real keys to git.
 - `USE_SUPABASE_COINS_CACHE=true` enables reading the coin list from Supabase cache + Realtime.
 - If `USE_MOCK_AUTH=true`, Supabase is intentionally not initialized; coin cache mode will fall back to direct CoinRanking repository.
+- `AUTH_REDIRECT_URL` is used for password recovery email links. For local web, set it to your running host (example: `http://localhost:53996`).
 
 ## App startup behavior
 
@@ -70,3 +72,15 @@ Row Level Security is enabled for all app tables:
 - `favorites`, `portfolio_positions`, `orders`: users can only select/insert/update/delete rows where `user_id = auth.uid()`
 
 This means client-side anon/authenticated keys can only access the signed-in user's rows.
+
+## Password recovery troubleshooting
+
+If you get `Error sending recovery email` from `/auth/v1/recover`:
+
+1. Supabase Dashboard -> Authentication -> URL Configuration:
+   - set `Site URL` to your active frontend domain
+   - add both local and production domains to Redirect URLs allow list
+2. Supabase Dashboard -> Authentication -> Email:
+   - verify SMTP settings (or disable custom SMTP to use default provider)
+   - verify the email template is enabled
+3. In app `.env`, set `AUTH_REDIRECT_URL` to the same domain you expect users to open.

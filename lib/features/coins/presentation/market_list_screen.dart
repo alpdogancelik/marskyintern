@@ -197,6 +197,7 @@ class _MarketListScreenState extends ConsumerState<MarketListScreen> {
                           return CoinRow(
                             name: coin.name,
                             symbol: coin.symbol,
+                            iconUrl: coin.iconUrl,
                             priceText: _formatCurrency(coin.price),
                             changePercent: coin.change,
                             sparkline: _buildSparkline(coin),

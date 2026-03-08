@@ -207,7 +207,7 @@ class _BrandMark extends StatelessWidget {
         child: const Center(
           child: AppIcon(
             name: 'digital-token',
-            semanticLabel: 'GoCrypto mark',
+            semanticLabel: 'Kora mark',
             size: 24,
           ),
         ),

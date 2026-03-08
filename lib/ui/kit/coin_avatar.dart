@@ -6,11 +6,13 @@ class CoinAvatar extends StatelessWidget {
   const CoinAvatar({
     super.key,
     required this.symbol,
+    this.iconUrl,
     this.size = 32,
     this.semanticLabel,
   });
 
   final String symbol;
+  final String? iconUrl;
   final double size;
   final String? semanticLabel;
 
@@ -30,6 +32,7 @@ class CoinAvatar extends StatelessWidget {
       ),
       child: CoinLogo(
         symbol: symbol,
+        iconUrl: iconUrl,
         size: size.clamp(20, 32),
         semanticLabel: semanticLabel ?? '$symbol coin avatar',
       ),

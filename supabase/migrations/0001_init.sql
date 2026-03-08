@@ -1,4 +1,4 @@
--- GoCrypto Supabase schema for coin cache + user data.
+-- Kora Supabase schema for coin cache + user data.
 -- This migration is safe to commit: no secrets are stored here.
 
 create extension if not exists pgcrypto;

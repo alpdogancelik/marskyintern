@@ -141,6 +141,7 @@ class FavoritesScreen extends ConsumerWidget {
                                 return CoinRow(
                                   name: coin.name,
                                   symbol: coin.symbol,
+                                  iconUrl: coin.iconUrl,
                                   priceText: _formatCurrency(coin.price),
                                   changePercent: coin.change,
                                   sparkline: _buildSparkline(coin),

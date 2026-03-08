@@ -219,7 +219,7 @@ class _HomeContent extends StatelessWidget {
                 children: [
                   AppTopBar(
                     leading: const _HomeBrandMark(),
-                    title: 'GoCrypto',
+                    title: 'Kora',
                     trailing: _HomeActions(
                       onTapSearch: onTapSearch,
                       onTapNotifications: onTapNotifications,
@@ -311,6 +311,7 @@ class _HomeContent extends StatelessWidget {
                   return CoinRow(
                     name: coin.name,
                     symbol: coin.symbol,
+                    iconUrl: coin.iconUrl,
                     priceText: _formatCurrency(coin.price),
                     changePercent: coin.change,
                     sparkline: _buildSparkline(coin),
@@ -481,6 +482,7 @@ class _FavoritesMiniRow extends StatelessWidget {
                       children: [
                         CoinAvatar(
                           symbol: coin.symbol,
+                          iconUrl: coin.iconUrl,
                           size: 24,
                           semanticLabel: '${coin.symbol} icon',
                         ),
@@ -635,7 +637,7 @@ class _HomeLoadingSkeleton extends StatelessWidget {
               children: [
                 AppTopBar(
                   leading: const _HomeBrandMark(),
-                  title: 'GoCrypto',
+                  title: 'Kora',
                   trailing: _HomeActions(
                     onTapSearch: onTapSearch,
                     onTapNotifications: onTapNotifications,
@@ -705,7 +707,7 @@ class _HomeErrorState extends StatelessWidget {
         children: [
           AppTopBar(
             leading: const _HomeBrandMark(),
-            title: 'GoCrypto',
+            title: 'Kora',
             trailing: _HomeActions(
               onTapSearch: onTapSearch,
               onTapNotifications: onTapNotifications,

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/env/env.dart';
 import '../../../core/supabase/supabase_config.dart';
 import '../domain/auth_state.dart' as domain;
 
@@ -99,7 +101,10 @@ class SupabaseAuthRepository implements AuthRepository {
   Future<void> resetPassword({
     required String email,
   }) {
-    return _client.auth.resetPasswordForEmail(email);
+    return _client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: _passwordResetRedirectTo(),
+    );
   }
 
   @override
@@ -133,5 +138,16 @@ class SupabaseAuthRepository implements AuthRepository {
       return const domain.AuthState.unauthenticated();
     }
     return domain.AuthState.authenticated(userId);
+  }
+
+  String? _passwordResetRedirectTo() {
+    final configured = Env.authRedirectUrl;
+    if (configured != null) {
+      return configured;
+    }
+    if (kIsWeb) {
+      return Uri.base.origin;
+    }
+    return null;
   }
 }

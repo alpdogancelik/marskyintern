@@ -10,7 +10,7 @@ class BiometricFingerprintScreen extends StatelessWidget {
     return const BiometricPromptScreen(
       title: 'Fingerprint',
       subtitle:
-          'Unlock GoCrypto with your fingerprint for quick and secure access.',
+          'Unlock Kora with your fingerprint for quick and secure access.',
       primaryLabel: 'Setup Fingerprint',
       icon: Icons.fingerprint,
       primaryRoute: '/app/home',

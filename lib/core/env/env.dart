@@ -49,6 +49,7 @@ class Env {
 
   static String? trySupabaseUrl() => _readOptional('SUPABASE_URL');
   static String? trySupabaseAnonKey() => _readOptional('SUPABASE_ANON_KEY');
+  static String? get authRedirectUrl => _readOptional('AUTH_REDIRECT_URL');
   static bool get hasSupabaseConfig {
     final url = trySupabaseUrl();
     final anonKey = trySupabaseAnonKey();

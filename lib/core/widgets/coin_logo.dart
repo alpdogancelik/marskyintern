@@ -10,12 +10,14 @@ class CoinLogo extends StatefulWidget {
   const CoinLogo({
     super.key,
     required this.symbol,
+    this.iconUrl,
     this.size = 24,
     this.variant = CoinLogoVariant.primary,
     this.semanticLabel,
   });
 
   final String symbol;
+  final String? iconUrl;
   final double size;
   final CoinLogoVariant variant;
   final String? semanticLabel;
@@ -27,12 +29,12 @@ class CoinLogo extends StatefulWidget {
 }
 
 class _CoinLogoState extends State<CoinLogo> {
-  static final Map<String, Future<String>> _resolvedPathCache =
-      <String, Future<String>>{};
+  static final Map<String, Future<String?>> _resolvedPathCache =
+      <String, Future<String?>>{};
   static final Map<String, Future<bool>> _assetExistsCache =
       <String, Future<bool>>{};
 
-  Future<String> _resolvePath() {
+  Future<String?> _resolvePath() {
     final variantNumber = widget.variant.index + 1;
     final symbolKey = widget.symbol.trim().toUpperCase();
     final cacheKey = '$symbolKey#$variantNumber';
@@ -58,7 +60,7 @@ class _CoinLogoState extends State<CoinLogo> {
         }
       }
 
-      return fallback;
+      return null;
     });
   }
 
@@ -92,13 +94,14 @@ class _CoinLogoState extends State<CoinLogo> {
           border: isDark ? Border.all(color: borderColor, width: 0.8) : null,
         ),
         child: ClipOval(
-          child: FutureBuilder<String>(
+          child: FutureBuilder<String?>(
             future: _resolvePath(),
             builder: (context, snapshot) {
               final loaded = snapshot.connectionState == ConnectionState.done;
               final child = loaded
                   ? _ResolvedAsset(
-                      path: snapshot.data ?? 'lib/media/svg/icons/coin.svg',
+                      path: snapshot.data,
+                      networkUrl: widget.iconUrl,
                       size: resolvedSize,
                       semanticLabel: semanticLabel,
                     )
@@ -153,11 +156,13 @@ class _CoinSkeleton extends StatelessWidget {
 class _ResolvedAsset extends StatelessWidget {
   const _ResolvedAsset({
     required this.path,
+    required this.networkUrl,
     required this.size,
     required this.semanticLabel,
   });
 
-  final String path;
+  final String? path;
+  final String? networkUrl;
   final double size;
   final String semanticLabel;
 
@@ -170,25 +175,40 @@ class _ResolvedAsset extends StatelessWidget {
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
 
+    final localPath = path;
+    final remoteUrl = networkUrl?.trim();
+    final hasRemoteUrl = remoteUrl != null && remoteUrl.isNotEmpty;
+
     Widget child;
-    if (path.toLowerCase().endsWith('.svg')) {
+    if (localPath != null && localPath.toLowerCase().endsWith('.svg')) {
       child = SvgPicture.asset(
-        path,
-        key: ValueKey<String>('coin-svg:$path'),
+        localPath,
+        key: ValueKey<String>('coin-svg:$localPath'),
         width: size,
         height: size,
         fit: BoxFit.cover,
         semanticsLabel: semanticLabel,
       );
-    } else {
+    } else if (localPath != null) {
       child = Image.asset(
-        path,
-        key: ValueKey<String>('coin-raster:$path'),
+        localPath,
+        key: ValueKey<String>('coin-raster:$localPath'),
         width: size,
         height: size,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => fallback,
       );
+    } else if (hasRemoteUrl) {
+      child = Image.network(
+        remoteUrl,
+        key: ValueKey<String>('coin-network:$remoteUrl'),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
+      );
+    } else {
+      child = fallback;
     }
 
     return Semantics(

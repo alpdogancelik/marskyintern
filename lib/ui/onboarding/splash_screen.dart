@@ -76,11 +76,11 @@ class _SplashScreenState extends State<SplashScreen> {
                 children: [
                   const AppIcon(
                     name: 'digital-token',
-                    semanticLabel: 'GoCrypto mark',
+                    semanticLabel: 'Kora mark',
                     size: 28,
                   ),
                   const SizedBox(height: AppTokens.space4),
-                  Text('GoCrypto', style: titleStyle),
+                  Text('Kora', style: titleStyle),
                 ],
               ),
             ),

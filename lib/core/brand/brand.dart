@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class KoraBrand {
-  static const String appName = 'GoCrypto';
+  static const String appName = 'Kora';
   static const String tagline = 'Buy, track, and manage crypto in one wallet.';
 
   static const double spaceXs = 8;

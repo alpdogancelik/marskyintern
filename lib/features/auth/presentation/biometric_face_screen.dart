@@ -10,7 +10,7 @@ class BiometricFaceScreen extends StatelessWidget {
     return const BiometricPromptScreen(
       title: 'Setup Face ID',
       subtitle:
-          'Unlock GoCrypto with your face ID for a faster and secure sign in.',
+          'Unlock Kora with your face ID for a faster and secure sign in.',
       primaryLabel: 'Scan my face',
       icon: Icons.face_retouching_natural,
       primaryRoute: '/auth/biometric-fingerprint',

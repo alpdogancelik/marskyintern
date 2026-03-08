@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_exception.dart';
 
@@ -13,6 +14,9 @@ class ExceptionMapper {
     }
     if (error is DioException) {
       return _mapDio(error);
+    }
+    if (error is AuthException) {
+      return _mapAuth(error);
     }
     if (_looksLikeCors(error.toString())) {
       return const CorsException(
@@ -64,6 +68,23 @@ class ExceptionMapper {
       return const CorsException(
         'This may be blocked by browser CORS. Try running on an emulator/device.',
       );
+    }
+
+    return const UnknownException('Something went wrong. Please try again.');
+  }
+
+  static AppException _mapAuth(AuthException error) {
+    final message = error.message.trim();
+    final lower = message.toLowerCase();
+
+    if (lower.contains('error sending recovery email')) {
+      return const ApiException(
+        'Password reset email could not be sent. Check Supabase Auth email settings (SMTP/template and redirect URLs).',
+      );
+    }
+
+    if (message.isNotEmpty) {
+      return ApiException(message);
     }
 
     return const UnknownException('Something went wrong. Please try again.');

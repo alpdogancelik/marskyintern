@@ -11,7 +11,7 @@ class GetStartedScreenV1 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const _GetStartedScreen(
-      title: 'Start with GoCrypto',
+      title: 'Start with Kora',
       subtitle: 'Trade, track, and manage your crypto assets in one app.',
       primaryLabel: 'Get Started',
       primaryRoute: '/auth/login',
@@ -27,7 +27,7 @@ class GetStartedScreenV2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const _GetStartedScreen(
-      title: 'Welcome to GoCrypto',
+      title: 'Welcome to Kora',
       subtitle: 'Secure your portfolio and move funds quickly.',
       primaryLabel: 'Get Started',
       primaryRoute: '/auth/login',

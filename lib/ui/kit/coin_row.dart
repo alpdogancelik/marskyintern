@@ -12,6 +12,7 @@ class CoinRow extends StatelessWidget {
     required this.changePercent,
     this.sparkline = const <double>[],
     this.iconSymbol,
+    this.iconUrl,
     this.trailing,
     this.onTap,
   });
@@ -22,6 +23,7 @@ class CoinRow extends StatelessWidget {
   final double changePercent;
   final List<double> sparkline;
   final String? iconSymbol;
+  final String? iconUrl;
   final Widget? trailing;
   final VoidCallback? onTap;
 
@@ -50,6 +52,7 @@ class CoinRow extends StatelessWidget {
           children: [
             CoinAvatar(
               symbol: iconSymbol ?? symbol,
+              iconUrl: iconUrl,
               size: 38,
               semanticLabel: '$symbol icon',
             ),
